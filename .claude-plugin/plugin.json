@@ -1,0 +1,10 @@
+{
+  "name": "adversarial-debate",
+  "version": "4.0.0",
+  "description": "Adversarial debate tool: two Claude instances (critic vs defender) stress-test and improve any document or code through structured multi-round debate.",
+  "author": {
+    "name": "Gabriel Simonet"
+  },
+  "license": "MIT",
+  "keywords": ["adversarial", "debate", "review", "critic", "red-team", "document-improvement"]
+}
