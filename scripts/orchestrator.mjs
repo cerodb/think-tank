@@ -18,14 +18,7 @@ import { parseArgs } from "./lib/core.mjs";
 import { runDebate } from "./modes/debate.mjs";
 import { runReview } from "./modes/review.mjs";
 import { runBrainstorm } from "./modes/brainstorm.mjs";
-
-// ---------------------------------------------------------------------------
-// Stub modes (replaced as each mode is implemented)
-// ---------------------------------------------------------------------------
-
-function runHypothesis(_args) {
-  console.log("Not implemented yet");
-}
+import { runHypothesis } from "./modes/hypothesis.mjs";
 
 // ---------------------------------------------------------------------------
 // Mode registry
