@@ -1,0 +1,25 @@
+{
+  "name": "think-tank",
+  "version": "1.0.0",
+  "type": "module",
+  "description": "Multi-agent collaboration plugin for Claude Code — debate, review, brainstorm, and hypothesis modes",
+  "author": "cerodb",
+  "license": "MIT",
+  "keywords": [
+    "claude",
+    "claude-code",
+    "plugin",
+    "multi-agent",
+    "debate",
+    "code-review",
+    "brainstorm",
+    "hypothesis"
+  ],
+  "scripts": {
+    "lint": "eslint --ext .mjs scripts/",
+    "test": "node scripts/smoke-test.mjs"
+  },
+  "devDependencies": {
+    "eslint": "^8.57.0"
+  }
+}

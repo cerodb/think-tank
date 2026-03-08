@@ -1,1 +1,4 @@
 prompts/synthesizer-v4-backup.md
+node_modules/
+output/
+*.log

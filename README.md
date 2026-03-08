@@ -1,129 +1,172 @@
-# Adversarial Debate Plugin for Claude Code
+# Think Tank — Multi-Agent Collaboration Plugin for Claude Code
 
-Your documents and code have blind spots. This plugin finds them.
-
-Two Claude instances -- a ruthless **Critic** and a rigorous **Defender** -- debate your artifact across multiple rounds. A **Synthesizer** incorporates only the changes both sides agreed on. A **Diff Evaluator** catches regressions.
-
-The result: artifacts that have survived structured opposition, not just proofreading or linting.
-
-## Why this exists
-
-Documents get written and ship with assumptions nobody challenged. Code gets reviewed by someone who skims the diff. Both deserve adversarial testing.
-
-This plugin applies structured opposition to any text artifact -- specs, architecture decisions, proposals, source code, scripts, configs -- anything where being wrong is expensive.
+Your documents have blind spots. Your code has unreviewed assumptions. Your ideas need stress-testing. Think Tank finds what you missed by orchestrating multiple Claude instances in structured roles.
 
 ## Quick Start
 
 ```bash
-# Install the plugin in Claude Code
-/install-plugin /path/to/adversarial-debate-plugin
+# 1. Copy plugin to Claude Code cache
+mkdir -p ~/.claude/plugins/cache/local/think-tank/1.0.0
+cp -r /path/to/adversarial-debate-plugin/* /path/to/adversarial-debate-plugin/.claude-plugin \
+  ~/.claude/plugins/cache/local/think-tank/1.0.0/
 
-# Debate a document
-/debate specs/architecture.md
+# 2. Register (add to ~/.claude/plugins/installed_plugins.json)
+# 3. Enable  (add to ~/.claude/settings.json)
+# See INSTALL.md for full steps
 
-# Debate source code
-/debate src/auth/login.ts
-
-# More rounds (default: 2)
-/debate docs/proposal.md --rounds 3
-
-# Custom output directory
-/debate README.md --output-dir /tmp/debate-output
+# 4. Use it
+/tank:debate specs/architecture.md
+/tank:review src/auth/login.ts
+/tank:brainstorm "How should we handle caching?"
+/tank:hypothesis --file hypothesis.md
 ```
 
-## How It Works
+From install to first result in under 60 seconds.
 
-```
-         CRITIC                    DEFENDER
-         ------                    --------
-Round 1  Attacks (6 vectors)  ->   Defends or concedes
-Round 2  Escalates survivors  ->   Deepens defense
-         ...N rounds...
+## Modes
 
-         SYNTHESIZER
-         -----------
-         Incorporates ONLY conceded points
-         Respects abstraction level of original
-         Prefers no change over lateral change
+### /tank:debate — Adversarial Document Improvement
 
-         DIFF EVALUATOR
-         --------------
-         Classifies each change:
-         IMPROVEMENT / LATERAL / REGRESSION
+A CRITIC attacks your document across 6 vectors. A DEFENDER fights back, conceding only when shown specific, likely failure scenarios. After N rounds, a SYNTHESIZER incorporates only conceded points. A DIFF EVALUATOR catches regressions.
+
+```bash
+/tank:debate docs/proposal.md              # 2 rounds (default)
+/tank:debate specs/arch.md --rounds 3      # more rounds
+/tank:debate README.md --output-dir /tmp   # custom output
+/tank:debate src/auth.ts --model opus      # override model
 ```
 
-### The Critic
+**Best for:** Architecture specs, design docs, proposals, ADRs, research summaries, critical source code.
 
-Auto-detects content type and selects attack vectors accordingly.
+**Output:** 3 files in `<input-dir>/adversarial/` (or `--output-dir`):
+- `debate-<timestamp>.md` — Full transcript (often more valuable than the improved doc)
+- `improved-<timestamp>.md` — Synthesized document with only conceded changes
+- `diff-eval-<timestamp>.md` — Regression analysis (improvement/lateral/regression ratio)
 
-**For documents** -- 6 vectors: contradictions, unstated assumptions, feasibility, failure modes, missing perspectives, second-order effects.
+**Cost estimate:** ~40K tokens per run (2 rounds). ~8 minutes on a 200-line document.
 
-**For code** -- 6 vectors: bugs and correctness, error handling gaps, security vulnerabilities, performance issues, maintainability, missing tests.
+### /tank:review — Multi-Reviewer Code Review
 
-Every criticism requires a concrete failure scenario and a direction for improvement. No vague concerns.
+Three specialist reviewers analyze your code independently, then a Synthesizer merges findings into a single prioritized action list.
 
-### The Defender
+- **Bug Hunter** — logic errors, edge cases, race conditions, off-by-ones
+- **Security Auditor** — injection, auth bypass, data exposure, input validation
+- **Performance Analyst** — leaks, blocking calls, unnecessary allocations, caching
 
-Doesn't just agree -- fights back. Concedes ONLY when the Critic demonstrates all three:
+```bash
+/tank:review src/auth/login.ts
+/tank:review scripts/deploy.sh --output-dir /tmp/review
+```
 
-- A specific scenario where the design or code fails
-- Who is affected and how
-- That the failure is **likely**, not merely possible
+**Best for:** Source code, scripts, configurations, security-sensitive files.
 
-Before addressing the Critic's points, the Defender checks: *"What is the MOST IMPORTANT concern the Critic did NOT raise?"* The best insights often come from what the Critic missed.
+**Output:** 2 files:
+- `review-<timestamp>.md` — Prioritized action list (Critical/High/Medium/Low)
+- `review-details-<timestamp>.md` — Per-reviewer findings
 
-### The Synthesizer
+**Cost estimate:** ~20K tokens per run. 4 Claude calls.
 
-Conservative by design. Only incorporates changes where the Defender explicitly conceded -- acknowledging a concern without proposing a fix is not a concession. Respects the abstraction level of the original: if your document is principles, you get back principles, not a runbook. If your code is simple, you get back simple code, not over-engineered abstractions.
+### /tank:brainstorm — Diverge-Challenge-Synthesize Ideation
 
-### The Diff Evaluator
+A Diverger generates 5+ ideas with implementation sketches. A Challenger stress-tests each one. A Synthesizer ranks the top 3 with pros/cons and a final recommendation.
 
-The final check. Classifies every change as improvement, lateral, or regression. Gives you a ratio so you know at a glance whether the synthesis helped or hurt.
+Accepts a topic string or a file path (auto-detected).
 
-## Output
+```bash
+/tank:brainstorm "How should we design the caching layer?"
+/tank:brainstorm docs/feature-proposal.md
+/tank:brainstorm "Migration strategy for auth service" --output-dir /tmp
+```
 
-Three files in `<input-dir>/adversarial/` (or `--output-dir`):
+**Best for:** Design decisions, feature planning, strategy, architecture exploration.
 
-| File | What it is |
-|------|-----------|
-| `debate-YYYY-MM-DD.md` | Full transcript -- often more valuable than the improved doc |
-| `improved-YYYY-MM-DD.md` | The synthesized document |
-| `diff-eval-YYYY-MM-DD.md` | Regression analysis with improvement/lateral/regression ratio |
+**Output:** 1 file:
+- `brainstorm-<timestamp>.md` — Ideas, challenges, and ranked recommendations
 
-The debate transcript is saved incrementally. If the process crashes mid-run, you still have everything up to that point.
+**Cost estimate:** ~15K tokens per run. 3 Claude calls.
 
-## When to Use It
+### /tank:hypothesis — Hypothesis-Driven Research with Git Branching
 
-**Great for:** Architecture specs, design docs, proposals, strategy documents, principles, research summaries, ADRs, critical source code, security-sensitive scripts -- anything where hidden assumptions cost real time or money.
+A Researcher explores the codebase on isolated git branches. A Verifier validates claims independently on separate branches. A Report synthesizes findings into confirm/reject/pivot recommendations.
 
-**Not ideal for:** Very short files (not enough substance to debate), files you aren't willing to change, generated code or configs.
+Create a hypothesis file first (template included):
 
-**Pro tip:** 2 rounds is the sweet spot. 3+ rounds show diminishing returns.
+```bash
+cp hypothesis-template.md hypothesis.md
+# Edit with your research question
 
-## Customizing
+/tank:hypothesis                              # reads ./hypothesis.md
+/tank:hypothesis --file my-hypothesis.md      # custom file
+/tank:hypothesis --cycles 2                   # multiple research cycles
+```
 
-All prompts live in `prompts/` as plain Markdown files. Edit them to change the debate behavior:
+Each cycle creates isolated branches (`hypothesis/researcher-c1-*`, `hypothesis/verifier-c1-*`) so the main branch stays clean. Researcher and Verifier have access to Read, Grep, and Write tools only.
+
+**Best for:** Codebase investigation, bug hunting, architecture analysis, understanding unfamiliar code.
+
+**Output:** 2 files:
+- `hypothesis-log-<timestamp>.md` — Full research log across all cycles
+- `hypothesis-report-<timestamp>.md` — Confirm/reject/pivot with evidence
+
+**Cost estimate:** ~30K tokens per cycle. Requires git.
+
+## Common Options
+
+| Flag | Modes | Description |
+|------|-------|-------------|
+| `--model MODEL` | All | Override Claude model (e.g., `sonnet`, `opus`) |
+| `--output-dir DIR` | All | Where to save output files |
+| `--rounds N` | debate | Number of debate rounds (default: 2) |
+| `--cycles N` | hypothesis | Number of research cycles (default: 1) |
+
+## Customization
+
+All prompts live in `prompts/` as plain Markdown files organized by mode:
 
 ```
 prompts/
-  critic.md            # Attack strategy and vectors
-  critic-followup.md   # Escalation in later rounds
-  defender.md          # Defense posture and concession rules
-  defender-followup.md # Deepening in later rounds
-  synthesizer.md       # Adjudication and change policy
-  diff-evaluator.md    # Classification criteria
+  debate/         # critic.md, defender.md, synthesizer.md, ...
+  review/         # bug-hunter.md, security-auditor.md, ...
+  brainstorm/     # diverger.md, challenger.md, synthesizer.md
+  hypothesis/     # researcher.md, verifier.md, report.md
 ```
 
-The prompts are the product. The script is just plumbing.
+**The prompts are the product.** The scripts are just plumbing. Edit any prompt to change agent behavior.
+
+### Adding Custom Modes
+
+Create a new directory under `prompts/` with your agent prompt files:
+
+```bash
+mkdir prompts/my-mode
+# Add agent-a.md, agent-b.md, synthesizer.md, etc.
+
+# Run it via --mode flag:
+node scripts/orchestrator.mjs my-mode input.md
+```
+
+Prompt files are loaded alphabetically (excluding README.md). Each agent receives the document and previous agent outputs via `{DOCUMENT}` and `{PREVIOUS}` template variables.
+
+See `prompts/example-custom/` for a working example with Devil's Advocate and Pragmatist agents.
+
+## Security Note
+
+All prompts include injection guards via `--system-prompt` to prevent prompt injection from analyzed documents. The system prompt content is not injectable from stdin. However, since this plugin runs Claude instances with your credentials, only analyze documents you trust — the same way you'd only open files you trust in your editor.
 
 ## Requirements
 
-- Claude Code with Max plan (spawns `claude -p` subprocesses)
-- Node.js 18+
+- **Claude Code** with Max plan or API key (spawns `claude -p` subprocesses)
+- **Node.js 18+**
+- **git** (required for hypothesis mode branch isolation)
 
-## Cost
+## Contributing
 
-6 Claude calls per run (2 rounds default): 2x critic + 2x defender + synthesizer + diff evaluator. Typical run on a 200-line document: ~8 minutes.
+1. Fork the repo
+2. Create a feature branch
+3. Add your mode under `prompts/<mode-name>/` with a README.md
+4. If it needs custom orchestration, add a module in `scripts/modes/`
+5. Run `node scripts/smoke-test.mjs` to validate structure
+6. Submit a PR
 
 ## License
 

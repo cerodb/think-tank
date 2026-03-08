@@ -1,10 +1,10 @@
 {
-  "name": "adversarial-debate",
-  "version": "4.0.0",
-  "description": "Adversarial debate tool: two Claude instances (critic vs defender) stress-test and improve any document or code through structured multi-round debate.",
+  "name": "think-tank",
+  "version": "1.0.0",
+  "description": "Multi-agent collaboration tool: 4 modes (debate, review, brainstorm, hypothesis) that orchestrate multiple Claude instances for structured analysis and improvement.",
   "author": {
     "name": "Gabriel Simonet"
   },
   "license": "MIT",
-  "keywords": ["adversarial", "debate", "review", "critic", "red-team", "document-improvement"]
+  "keywords": ["multi-agent", "debate", "review", "brainstorm", "hypothesis", "collaboration", "red-team", "code-review"]
 }
