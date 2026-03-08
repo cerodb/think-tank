@@ -17,6 +17,7 @@ import {
   preview,
   wrapDoc,
   saveFile,
+  isBinaryFile,
 } from "../lib/core.mjs";
 
 // ---------------------------------------------------------------------------
@@ -74,6 +75,11 @@ export function runReview(args) {
     process.exit(1);
   }
 
+  if (isBinaryFile(inputFile)) {
+    console.error(`Error: ${inputFile} appears to be a binary file. Review mode only works with text files.`);
+    process.exit(1);
+  }
+
   if (!outputDir) {
     outputDir = join(dirname(inputFile), "review");
   }
@@ -116,40 +122,48 @@ export function runReview(args) {
 
   // ---- REVIEWERS ----
 
-  for (const reviewer of REVIEWERS) {
-    console.log(`[${reviewer.name.toUpperCase()}] Reviewing...`);
+  try {
+    for (const reviewer of REVIEWERS) {
+      console.log(`[${reviewer.name.toUpperCase()}] Reviewing...`);
 
-    const promptTemplate = loadReviewPrompt(reviewer.prompt);
-    const prompt = `${promptTemplate}\n\n---\n\n${wrappedDoc}`;
+      const promptTemplate = loadReviewPrompt(reviewer.prompt);
+      const prompt = `${promptTemplate}\n\n---\n\n${wrappedDoc}`;
 
-    const result = callClaude(prompt, claudeOpts);
-    findings.push({ name: reviewer.name, result });
+      const result = callClaude(prompt, claudeOpts);
+      findings.push({ name: reviewer.name, result });
 
-    detailsContext += `\n\n## ${reviewer.name}\n\n${result}`;
+      detailsContext += `\n\n## ${reviewer.name}\n\n${result}`;
+      saveDetailsTranscript();
+
+      console.log(`  Done (${result.length} chars)`);
+      console.log(`  >> ${preview(result)}\n`);
+    }
+
+    // ---- SYNTHESIZER ----
+
+    console.log(`[SYNTHESIZER] Merging findings...`);
+
+    const SYNTH = loadReviewPrompt("synthesizer");
+    const reviewsBlock = findings
+      .map((f) => `### ${f.name}\n\n${f.result}`)
+      .join("\n\n---\n\n");
+
+    const synthPrompt =
+      `${SYNTH}\n\n---\n\n${wrappedDoc}\n\n---\n\n` +
+      `<REVIEWS>\n${reviewsBlock}\n</REVIEWS>`;
+
+    const synthesized = callClaude(synthPrompt, claudeOpts);
+    saveFile(synthesized, reviewFile);
+
+    console.log(`  Done (${synthesized.length} chars)`);
+    console.log(`  >> ${preview(synthesized)}\n`);
+
+  } catch (err) {
+    console.error(`\nError during review: ${err.message}`);
     saveDetailsTranscript();
-
-    console.log(`  Done (${result.length} chars)`);
-    console.log(`  >> ${preview(result)}\n`);
+    console.error(`Partial results saved to: ${detailsFile}`);
+    process.exit(1);
   }
-
-  // ---- SYNTHESIZER ----
-
-  console.log(`[SYNTHESIZER] Merging findings...`);
-
-  const SYNTH = loadReviewPrompt("synthesizer");
-  const reviewsBlock = findings
-    .map((f) => `### ${f.name}\n\n${f.result}`)
-    .join("\n\n---\n\n");
-
-  const synthPrompt =
-    `${SYNTH}\n\n---\n\n${wrappedDoc}\n\n---\n\n` +
-    `<REVIEWS>\n${reviewsBlock}\n</REVIEWS>`;
-
-  const synthesized = callClaude(synthPrompt, claudeOpts);
-  saveFile(synthesized, reviewFile);
-
-  console.log(`  Done (${synthesized.length} chars)`);
-  console.log(`  >> ${preview(synthesized)}\n`);
 
   // ---- SUMMARY ----
 

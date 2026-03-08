@@ -15,6 +15,7 @@ import {
   timestamp,
   preview,
   saveFile,
+  isBinaryFile,
 } from "../lib/core.mjs";
 
 // ---------------------------------------------------------------------------
@@ -65,6 +66,10 @@ export function runBrainstorm(args) {
   // Resolve file if it exists
   if (inputFile) {
     inputFile = resolve(inputFile);
+    if (isBinaryFile(inputFile)) {
+      console.error(`Error: ${inputFile} appears to be a binary file. Brainstorm mode only works with text files.`);
+      process.exit(1);
+    }
   }
 
   // Validate: need either file or topic
@@ -120,50 +125,58 @@ export function runBrainstorm(args) {
 
   // ---- DIVERGER ----
 
-  console.log("[DIVERGER] Generating ideas...");
+  try {
+    console.log("[DIVERGER] Generating ideas...");
 
-  const divergerPrompt = loadBrainstormPrompt("diverger");
-  const divergeInput = `${divergerPrompt}\n\n---\n\n${wrappedTopic}`;
+    const divergerPrompt = loadBrainstormPrompt("diverger");
+    const divergeInput = `${divergerPrompt}\n\n---\n\n${wrappedTopic}`;
 
-  const ideas = callClaude(divergeInput, claudeOpts);
-  transcript += `\n\n## Diverger — Ideas\n\n${ideas}`;
-  saveTranscript();
+    const ideas = callClaude(divergeInput, claudeOpts);
+    transcript += `\n\n## Diverger — Ideas\n\n${ideas}`;
+    saveTranscript();
 
-  console.log(`  Done (${ideas.length} chars)`);
-  console.log(`  >> ${preview(ideas)}\n`);
+    console.log(`  Done (${ideas.length} chars)`);
+    console.log(`  >> ${preview(ideas)}\n`);
 
-  // ---- CHALLENGER ----
+    // ---- CHALLENGER ----
 
-  console.log("[CHALLENGER] Stress-testing ideas...");
+    console.log("[CHALLENGER] Stress-testing ideas...");
 
-  const challengerPrompt = loadBrainstormPrompt("challenger");
-  const challengeInput =
-    `${challengerPrompt}\n\n---\n\n${wrappedTopic}\n\n` +
-    `<IDEAS>\n${ideas}\n</IDEAS>`;
+    const challengerPrompt = loadBrainstormPrompt("challenger");
+    const challengeInput =
+      `${challengerPrompt}\n\n---\n\n${wrappedTopic}\n\n` +
+      `<IDEAS>\n${ideas}\n</IDEAS>`;
 
-  const challenges = callClaude(challengeInput, claudeOpts);
-  transcript += `\n\n---\n\n## Challenger — Critique\n\n${challenges}`;
-  saveTranscript();
+    const challenges = callClaude(challengeInput, claudeOpts);
+    transcript += `\n\n---\n\n## Challenger — Critique\n\n${challenges}`;
+    saveTranscript();
 
-  console.log(`  Done (${challenges.length} chars)`);
-  console.log(`  >> ${preview(challenges)}\n`);
+    console.log(`  Done (${challenges.length} chars)`);
+    console.log(`  >> ${preview(challenges)}\n`);
 
-  // ---- SYNTHESIZER ----
+    // ---- SYNTHESIZER ----
 
-  console.log("[SYNTHESIZER] Ranking and recommending...");
+    console.log("[SYNTHESIZER] Ranking and recommending...");
 
-  const synthPrompt = loadBrainstormPrompt("synthesizer");
-  const synthInput =
-    `${synthPrompt}\n\n---\n\n${wrappedTopic}\n\n` +
-    `<IDEAS>\n${ideas}\n</IDEAS>\n\n` +
-    `<CHALLENGES>\n${challenges}\n</CHALLENGES>`;
+    const synthPrompt = loadBrainstormPrompt("synthesizer");
+    const synthInput =
+      `${synthPrompt}\n\n---\n\n${wrappedTopic}\n\n` +
+      `<IDEAS>\n${ideas}\n</IDEAS>\n\n` +
+      `<CHALLENGES>\n${challenges}\n</CHALLENGES>`;
 
-  const synthesized = callClaude(synthInput, claudeOpts);
-  transcript += `\n\n---\n\n## Synthesizer — Recommendation\n\n${synthesized}`;
-  saveTranscript();
+    const synthesized = callClaude(synthInput, claudeOpts);
+    transcript += `\n\n---\n\n## Synthesizer — Recommendation\n\n${synthesized}`;
+    saveTranscript();
 
-  console.log(`  Done (${synthesized.length} chars)`);
-  console.log(`  >> ${preview(synthesized)}\n`);
+    console.log(`  Done (${synthesized.length} chars)`);
+    console.log(`  >> ${preview(synthesized)}\n`);
+
+  } catch (err) {
+    console.error(`\nError during brainstorm: ${err.message}`);
+    saveTranscript();
+    console.error(`Partial results saved to: ${outputFile}`);
+    process.exit(1);
+  }
 
   // ---- SUMMARY ----
 

@@ -214,7 +214,16 @@ export function runHypothesis(args) {
         tools: ["Read", "Grep", "Write"],
       };
 
-      const researchResult = callClaude(researcherInput, researcherOpts);
+      let researchResult;
+      try {
+        researchResult = callClaude(researcherInput, researcherOpts);
+      } catch (err) {
+        console.error(`\nError during researcher (cycle ${cycle}): ${err.message}`);
+        log += `\n\n## Researcher (Cycle ${cycle}) — ERROR\n\n${err.message}`;
+        saveLog();
+        console.error(`Partial results saved to: ${logFile}`);
+        throw err;
+      }
       log += `\n\n## Researcher (Cycle ${cycle})\n\n${researchResult}`;
       saveLog();
 
@@ -247,7 +256,16 @@ export function runHypothesis(args) {
         tools: ["Read", "Grep", "Write"],
       };
 
-      const verifyResult = callClaude(verifierInput, verifierOpts);
+      let verifyResult;
+      try {
+        verifyResult = callClaude(verifierInput, verifierOpts);
+      } catch (err) {
+        console.error(`\nError during verifier (cycle ${cycle}): ${err.message}`);
+        log += `\n\n## Verifier (Cycle ${cycle}) — ERROR\n\n${err.message}`;
+        saveLog();
+        console.error(`Partial results saved to: ${logFile}`);
+        throw err;
+      }
       log += `\n\n## Verifier (Cycle ${cycle})\n\n${verifyResult}`;
       saveLog();
 
@@ -281,7 +299,16 @@ export function runHypothesis(args) {
       `<RESEARCH_LOG>\n${log}\n</RESEARCH_LOG>`;
 
     // Report does NOT get tools — pure synthesis
-    const report = callClaude(reportInput, claudeOpts);
+    let report;
+    try {
+      report = callClaude(reportInput, claudeOpts);
+    } catch (err) {
+      console.error(`\nError during report synthesis: ${err.message}`);
+      log += `\n\n---\n\n# Final Report — ERROR\n\n${err.message}`;
+      saveLog();
+      console.error(`Partial results saved to: ${logFile}`);
+      throw err;
+    }
 
     log += `\n\n---\n\n# Final Report\n\n${report}`;
     saveLog();

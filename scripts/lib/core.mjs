@@ -9,6 +9,9 @@ import {
   writeFileSync,
   mkdirSync,
   existsSync,
+  openSync,
+  readSync,
+  closeSync,
 } from "node:fs";
 import { join, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -69,7 +72,12 @@ export function callClaude(prompt, options = {}) {
     const err = result.stderr || "Unknown error";
     throw new Error(`claude exited with status ${result.status}: ${err}`);
   }
-  return result.stdout.trim();
+
+  const output = result.stdout.trim();
+  if (!output) {
+    console.warn("WARNING: Claude returned an empty response.");
+  }
+  return output;
 }
 
 // ---------------------------------------------------------------------------
@@ -219,6 +227,31 @@ export function preview(text, maxLen = 120) {
  */
 export function wrapDoc(doc) {
   return `<DOCUMENT>\n${doc}\n</DOCUMENT>`;
+}
+
+// ---------------------------------------------------------------------------
+// isBinaryFile — detect binary files by null bytes in first 1024 chars
+// ---------------------------------------------------------------------------
+
+/**
+ * Check if a file appears to be binary by looking for null bytes.
+ *
+ * @param {string} filePath - Path to the file
+ * @returns {boolean} True if file appears to be binary
+ */
+export function isBinaryFile(filePath) {
+  try {
+    const buf = Buffer.alloc(1024);
+    const fd = openSync(filePath, "r");
+    const bytesRead = readSync(fd, buf, 0, 1024, 0);
+    closeSync(fd);
+    for (let i = 0; i < bytesRead; i++) {
+      if (buf[i] === 0) return true;
+    }
+    return false;
+  } catch {
+    return false;
+  }
 }
 
 // ---------------------------------------------------------------------------

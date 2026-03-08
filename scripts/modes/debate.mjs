@@ -16,6 +16,7 @@ import {
   preview,
   wrapDoc,
   saveFile,
+  isBinaryFile,
 } from "../lib/core.mjs";
 
 // ---------------------------------------------------------------------------
@@ -62,6 +63,11 @@ export function runDebate(args) {
   inputFile = resolve(inputFile);
   if (!existsSync(inputFile)) {
     console.error(`Error: file not found: ${inputFile}`);
+    process.exit(1);
+  }
+
+  if (isBinaryFile(inputFile)) {
+    console.error(`Error: ${inputFile} appears to be a binary file. Debate mode only works with text files.`);
     process.exit(1);
   }
 
@@ -116,60 +122,68 @@ export function runDebate(args) {
 
   // ---- DEBATE ROUNDS ----
 
-  for (let r = 1; r <= rounds; r++) {
-    // --- CRITIC ---
-    console.log(`[Round ${r}/${rounds}] CRITIC...`);
+  try {
+    for (let r = 1; r <= rounds; r++) {
+      // --- CRITIC ---
+      console.log(`[Round ${r}/${rounds}] CRITIC...`);
 
-    let criticPrompt;
-    if (r === 1) {
-      criticPrompt = `${CRITIC}\n\n---\n\n${wrappedDoc}`;
-    } else {
-      const followup = CRITIC_FOLLOWUP.replace("{ROUND}", String(r));
-      criticPrompt = `${CRITIC}\n\n---\n\n${wrappedDoc}\n\n---\n\n# DEBATE SO FAR\n\n${debateContext}\n\n---\n\n${followup}`;
+      let criticPrompt;
+      if (r === 1) {
+        criticPrompt = `${CRITIC}\n\n---\n\n${wrappedDoc}`;
+      } else {
+        const followup = CRITIC_FOLLOWUP.replace("{ROUND}", String(r));
+        criticPrompt = `${CRITIC}\n\n---\n\n${wrappedDoc}\n\n---\n\n# DEBATE SO FAR\n\n${debateContext}\n\n---\n\n${followup}`;
+      }
+
+      const critique = callClaude(criticPrompt, claudeOpts);
+      debateContext += `\n\n## Round ${r} — CRITIC\n\n${critique}`;
+      saveDebateTranscript();
+      console.log(`  Done (${critique.length} chars)`);
+      console.log(`  >> ${preview(critique)}\n`);
+
+      // --- DEFENDER ---
+      console.log(`[Round ${r}/${rounds}] DEFENDER...`);
+
+      let defenderPrompt;
+      if (r === 1) {
+        defenderPrompt = `${DEFENDER}\n\n---\n\n${wrappedDoc}\n\n---\n\n# DEBATE SO FAR\n\n${debateContext}\n\n---\n\nRespond to the critic's round ${r} arguments.`;
+      } else {
+        const followup = DEFENDER_FOLLOWUP.replace("{ROUND}", String(r));
+        defenderPrompt = `${DEFENDER}\n\n---\n\n${wrappedDoc}\n\n---\n\n# DEBATE SO FAR\n\n${debateContext}\n\n---\n\n${followup}`;
+      }
+
+      const defense = callClaude(defenderPrompt, claudeOpts);
+      debateContext += `\n\n## Round ${r} — DEFENDER\n\n${defense}`;
+      saveDebateTranscript();
+      console.log(`  Done (${defense.length} chars)`);
+      console.log(`  >> ${preview(defense)}\n`);
     }
 
-    const critique = callClaude(criticPrompt, claudeOpts);
-    debateContext += `\n\n## Round ${r} — CRITIC\n\n${critique}`;
+    // ---- SYNTHESIZER ----
+
+    console.log(`[SYNTHESIZER] Generating improved document...`);
+    const synthPrompt = `${SYNTHESIZER}\n\n---\n\n${wrappedDoc}\n\n---\n\n# FULL DEBATE TRANSCRIPT\n\n${debateContext}`;
+
+    const improved = callClaude(synthPrompt, claudeOpts);
+    saveFile(improved, improvedFile);
+    console.log(`  Done (${improved.length} chars)\n`);
+
+    // ---- DIFF EVALUATOR ----
+
+    console.log(`[DIFF EVALUATOR] Checking for regressions...`);
+    const diffPrompt = `${DIFF_EVALUATOR}\n\n---\n\n# ORIGINAL DOCUMENT\n\n${wrappedDoc}\n\n---\n\n# REVISED DOCUMENT\n\n<DOCUMENT>\n${improved}\n</DOCUMENT>`;
+
+    const diffEval = callClaude(diffPrompt, claudeOpts);
+    saveFile(diffEval, diffEvalFile);
+    console.log(`  Done (${diffEval.length} chars)`);
+    console.log(`  >> ${preview(diffEval)}\n`);
+
+  } catch (err) {
+    console.error(`\nError during debate: ${err.message}`);
     saveDebateTranscript();
-    console.log(`  Done (${critique.length} chars)`);
-    console.log(`  >> ${preview(critique)}\n`);
-
-    // --- DEFENDER ---
-    console.log(`[Round ${r}/${rounds}] DEFENDER...`);
-
-    let defenderPrompt;
-    if (r === 1) {
-      defenderPrompt = `${DEFENDER}\n\n---\n\n${wrappedDoc}\n\n---\n\n# DEBATE SO FAR\n\n${debateContext}\n\n---\n\nRespond to the critic's round ${r} arguments.`;
-    } else {
-      const followup = DEFENDER_FOLLOWUP.replace("{ROUND}", String(r));
-      defenderPrompt = `${DEFENDER}\n\n---\n\n${wrappedDoc}\n\n---\n\n# DEBATE SO FAR\n\n${debateContext}\n\n---\n\n${followup}`;
-    }
-
-    const defense = callClaude(defenderPrompt, claudeOpts);
-    debateContext += `\n\n## Round ${r} — DEFENDER\n\n${defense}`;
-    saveDebateTranscript();
-    console.log(`  Done (${defense.length} chars)`);
-    console.log(`  >> ${preview(defense)}\n`);
+    console.error(`Partial results saved to: ${debateFile}`);
+    process.exit(1);
   }
-
-  // ---- SYNTHESIZER ----
-
-  console.log(`[SYNTHESIZER] Generating improved document...`);
-  const synthPrompt = `${SYNTHESIZER}\n\n---\n\n${wrappedDoc}\n\n---\n\n# FULL DEBATE TRANSCRIPT\n\n${debateContext}`;
-
-  const improved = callClaude(synthPrompt, claudeOpts);
-  saveFile(improved, improvedFile);
-  console.log(`  Done (${improved.length} chars)\n`);
-
-  // ---- DIFF EVALUATOR ----
-
-  console.log(`[DIFF EVALUATOR] Checking for regressions...`);
-  const diffPrompt = `${DIFF_EVALUATOR}\n\n---\n\n# ORIGINAL DOCUMENT\n\n${wrappedDoc}\n\n---\n\n# REVISED DOCUMENT\n\n<DOCUMENT>\n${improved}\n</DOCUMENT>`;
-
-  const diffEval = callClaude(diffPrompt, claudeOpts);
-  saveFile(diffEval, diffEvalFile);
-  console.log(`  Done (${diffEval.length} chars)`);
-  console.log(`  >> ${preview(diffEval)}\n`);
 
   // ---- SUMMARY ----
 
