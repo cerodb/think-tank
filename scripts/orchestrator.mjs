@@ -16,14 +16,11 @@
 
 import { parseArgs } from "./lib/core.mjs";
 import { runDebate } from "./modes/debate.mjs";
+import { runReview } from "./modes/review.mjs";
 
 // ---------------------------------------------------------------------------
 // Stub modes (replaced as each mode is implemented)
 // ---------------------------------------------------------------------------
-
-function runReview(_args) {
-  console.log("Not implemented yet");
-}
 
 function runBrainstorm(_args) {
   console.log("Not implemented yet");
