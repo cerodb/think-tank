@@ -6,69 +6,36 @@
 - Node.js 18+
 - git (required for hypothesis mode)
 
-## Steps
-
-### 1. Copy plugin to Claude Code cache
+## Quick Install
 
 ```bash
-# Run from inside the plugin directory (where package.json lives)
-mkdir -p ~/.claude/plugins/cache/local/think-tank/1.0.0
-cp -r . ~/.claude/plugins/cache/local/think-tank/1.0.0/
+git clone https://github.com/cerodb/think-tank.git
+cd think-tank
+bash scripts/install.sh
 ```
 
-### 2. Register the plugin
-
-Edit `~/.claude/plugins/installed_plugins.json` and add inside the `"plugins"` object:
-
-```json
-"think-tank@local": [
-  {
-    "scope": "user",
-    "installPath": "<HOME>/.claude/plugins/cache/local/think-tank/1.0.0",
-    "version": "1.0.0",
-    "installedAt": "2026-03-08T00:00:00.000Z",
-    "lastUpdated": "2026-03-08T00:00:00.000Z"
-  }
-]
-```
-
-Replace `<HOME>` with your actual home directory path (e.g., `/Users/yourname`).
-
-### 3. Enable the plugin
-
-Edit `~/.claude/settings.json` and add inside `"enabledPlugins"`:
-
-```json
-"think-tank@local": true
-```
-
-### 4. Restart Claude Code
-
-Close and reopen your Claude Code session. The plugin commands should now be available.
+Then restart Claude Code. That's it.
 
 ## Commands
 
 | Command | Description |
 |---------|-------------|
-| `/tank:debate <file> [--rounds N] [--output-dir DIR]` | Adversarial document improvement |
-| `/tank:review <file> [--output-dir DIR]` | Multi-reviewer code review |
-| `/tank:brainstorm <topic-or-file> [--output-dir DIR]` | Diverge-challenge-synthesize ideation |
-| `/tank:hypothesis [--file FILE] [--cycles N] [--output-dir DIR]` | Hypothesis-driven research with git branching |
-| `/tank:help` | Show all modes and usage |
+| `/think-tank:debate <file> [--rounds N] [--output-dir DIR]` | Adversarial document improvement |
+| `/think-tank:review <file> [--output-dir DIR]` | Multi-reviewer code review |
+| `/think-tank:brainstorm <topic-or-file> [--output-dir DIR]` | Diverge-challenge-synthesize ideation |
+| `/think-tank:hypothesis [--file FILE] [--cycles N] [--output-dir DIR]` | Hypothesis-driven research with git branching |
+| `/think-tank:help` | Show all modes and usage |
 
 All commands support `--model MODEL` to override the Claude model.
 
 ## Examples
 
 ```bash
-/tank:debate docs/architecture.md
-/tank:debate specs/proposal.md --rounds 3
-/tank:review src/auth/login.ts
-/tank:review scripts/deploy.sh --output-dir /tmp/review
-/tank:brainstorm "How should we design the caching layer?"
-/tank:brainstorm docs/feature-idea.md
-/tank:hypothesis --file hypothesis.md --cycles 2
-/tank:help
+/think-tank:debate docs/architecture.md
+/think-tank:debate specs/proposal.md --rounds 3
+/think-tank:review src/auth/login.ts
+/think-tank:brainstorm "How should we design the caching layer?"
+/think-tank:hypothesis --file hypothesis.md --cycles 2
 ```
 
 ## What it does
@@ -92,8 +59,21 @@ Edit the Markdown files in `prompts/` inside the plugin installation:
   hypothesis/     # researcher.md, verifier.md, report.md
 ```
 
+## Manual Install
+
+If the install script doesn't work, these are the three steps it performs:
+
+1. Copy plugin files to `~/.claude/plugins/cache/local/think-tank/1.0.0/`
+2. Register `"think-tank@local"` in `~/.claude/plugins/installed_plugins.json`
+3. Enable `"think-tank@local": true` in `~/.claude/settings.json`
+
 ## Uninstall
 
-1. Remove `"think-tank@local"` from `installed_plugins.json`
-2. Remove `"think-tank@local": true` from `settings.json`
-3. Delete `~/.claude/plugins/cache/local/think-tank/`
+```bash
+# Remove registration
+# Edit ~/.claude/plugins/installed_plugins.json — delete the "think-tank@local" entry
+# Edit ~/.claude/settings.json — delete "think-tank@local" from enabledPlugins
+
+# Remove files
+rm -rf ~/.claude/plugins/cache/local/think-tank/
+```
