@@ -1,0 +1,16 @@
+{
+  "name": "think-tank",
+  "owner": {
+    "name": "Gabriel Simonet"
+  },
+  "metadata": {
+    "description": "Multi-agent collaboration plugin for Claude Code"
+  },
+  "plugins": [
+    {
+      "name": "think-tank",
+      "source": "./plugins/think-tank",
+      "description": "4 modes (debate, review, brainstorm, hypothesis) that orchestrate multiple Claude instances for structured analysis and improvement"
+    }
+  ]
+}

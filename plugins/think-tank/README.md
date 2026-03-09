@@ -4,36 +4,33 @@ Your documents have blind spots. Your code has unreviewed assumptions. Your idea
 
 ## Quick Start
 
-```bash
-# 1. Copy plugin to Claude Code cache
-mkdir -p ~/.claude/plugins/cache/local/think-tank/1.0.0
-cp -r /path/to/adversarial-debate-plugin/* /path/to/adversarial-debate-plugin/.claude-plugin \
-  ~/.claude/plugins/cache/local/think-tank/1.0.0/
+From inside Claude Code:
 
-# 2. Register (add to ~/.claude/plugins/installed_plugins.json)
-# 3. Enable  (add to ~/.claude/settings.json)
-# See INSTALL.md for full steps
-
-# 4. Use it
-/tank:debate specs/architecture.md
-/tank:review src/auth/login.ts
-/tank:brainstorm "How should we handle caching?"
-/tank:hypothesis --file hypothesis.md
+```
+/plugin marketplace add cerodb/think-tank
+/plugin install think-tank@think-tank
 ```
 
-From install to first result in under 60 seconds.
+Then use it:
+
+```
+/think-tank:debate specs/architecture.md
+/think-tank:review src/auth/login.ts
+/think-tank:brainstorm "How should we handle caching?"
+/think-tank:hypothesis --file hypothesis.md
+```
 
 ## Modes
 
-### /tank:debate — Adversarial Document Improvement
+### /think-tank:debate — Adversarial Document Improvement
 
 A CRITIC attacks your document across 6 vectors. A DEFENDER fights back, conceding only when shown specific, likely failure scenarios. After N rounds, a SYNTHESIZER incorporates only conceded points. A DIFF EVALUATOR catches regressions.
 
 ```bash
-/tank:debate docs/proposal.md              # 2 rounds (default)
-/tank:debate specs/arch.md --rounds 3      # more rounds
-/tank:debate README.md --output-dir /tmp   # custom output
-/tank:debate src/auth.ts --model opus      # override model
+/think-tank:debate docs/proposal.md              # 2 rounds (default)
+/think-tank:debate specs/arch.md --rounds 3      # more rounds
+/think-tank:debate README.md --output-dir /tmp   # custom output
+/think-tank:debate src/auth.ts --model opus      # override model
 ```
 
 **Best for:** Architecture specs, design docs, proposals, ADRs, research summaries, critical source code.
@@ -45,7 +42,7 @@ A CRITIC attacks your document across 6 vectors. A DEFENDER fights back, concedi
 
 **Cost estimate:** ~40K tokens per run (2 rounds). ~8 minutes on a 200-line document.
 
-### /tank:review — Multi-Reviewer Code Review
+### /think-tank:review — Multi-Reviewer Code Review
 
 Three specialist reviewers analyze your code independently, then a Synthesizer merges findings into a single prioritized action list.
 
@@ -54,8 +51,8 @@ Three specialist reviewers analyze your code independently, then a Synthesizer m
 - **Performance Analyst** — leaks, blocking calls, unnecessary allocations, caching
 
 ```bash
-/tank:review src/auth/login.ts
-/tank:review scripts/deploy.sh --output-dir /tmp/review
+/think-tank:review src/auth/login.ts
+/think-tank:review scripts/deploy.sh --output-dir /tmp/review
 ```
 
 **Best for:** Source code, scripts, configurations, security-sensitive files.
@@ -66,16 +63,16 @@ Three specialist reviewers analyze your code independently, then a Synthesizer m
 
 **Cost estimate:** ~20K tokens per run. 4 Claude calls.
 
-### /tank:brainstorm — Diverge-Challenge-Synthesize Ideation
+### /think-tank:brainstorm — Diverge-Challenge-Synthesize Ideation
 
 A Diverger generates 5+ ideas with implementation sketches. A Challenger stress-tests each one. A Synthesizer ranks the top 3 with pros/cons and a final recommendation.
 
 Accepts a topic string or a file path (auto-detected).
 
 ```bash
-/tank:brainstorm "How should we design the caching layer?"
-/tank:brainstorm docs/feature-proposal.md
-/tank:brainstorm "Migration strategy for auth service" --output-dir /tmp
+/think-tank:brainstorm "How should we design the caching layer?"
+/think-tank:brainstorm docs/feature-proposal.md
+/think-tank:brainstorm "Migration strategy for auth service" --output-dir /tmp
 ```
 
 **Best for:** Design decisions, feature planning, strategy, architecture exploration.
@@ -85,7 +82,7 @@ Accepts a topic string or a file path (auto-detected).
 
 **Cost estimate:** ~15K tokens per run. 3 Claude calls.
 
-### /tank:hypothesis — Hypothesis-Driven Research with Git Branching
+### /think-tank:hypothesis — Hypothesis-Driven Research with Git Branching
 
 A Researcher explores the codebase on isolated git branches. A Verifier validates claims independently on separate branches. A Report synthesizes findings into confirm/reject/pivot recommendations.
 
@@ -95,9 +92,9 @@ Create a hypothesis file first (template included):
 cp hypothesis-template.md hypothesis.md
 # Edit with your research question
 
-/tank:hypothesis                              # reads ./hypothesis.md
-/tank:hypothesis --file my-hypothesis.md      # custom file
-/tank:hypothesis --cycles 2                   # multiple research cycles
+/think-tank:hypothesis                              # reads ./hypothesis.md
+/think-tank:hypothesis --file my-hypothesis.md      # custom file
+/think-tank:hypothesis --cycles 2                   # multiple research cycles
 ```
 
 Each cycle creates isolated branches (`hypothesis/researcher-c1-*`, `hypothesis/verifier-c1-*`) so the main branch stays clean. Researcher and Verifier have access to Read, Grep, and Write tools only.
