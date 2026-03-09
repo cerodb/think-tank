@@ -7,16 +7,24 @@
 - Node.js 18+
 - git (required for hypothesis mode)
 
-## Install
+## Install from zip
 
-From inside Claude Code, run:
+1. Download and unzip `think-tank.zip`
+2. From inside Claude Code:
+
+```
+/plugin marketplace add ./think-tank
+/plugin install think-tank@think-tank
+```
+
+Replace `./think-tank` with the actual path to the unzipped folder.
+
+## Install from GitHub (when repo is public)
 
 ```
 /plugin marketplace add cerodb/think-tank
 /plugin install think-tank@think-tank
 ```
-
-That's it. No cloning, no scripts.
 
 ## Commands
 
