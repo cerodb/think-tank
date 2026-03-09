@@ -13,7 +13,7 @@ import {
   readSync,
   closeSync,
 } from "node:fs";
-import { join, dirname } from "node:path";
+import { join, dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
 // ---------------------------------------------------------------------------
@@ -21,8 +21,8 @@ import { fileURLToPath } from "node:url";
 // ---------------------------------------------------------------------------
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
-const PLUGIN_ROOT = join(__dirname, "..", "..");
-const PROMPTS_DIR = join(PLUGIN_ROOT, "prompts");
+const PLUGIN_ROOT = resolve(__dirname, "..", "..");
+const PROMPTS_DIR = resolve(PLUGIN_ROOT, "prompts");
 
 // ---------------------------------------------------------------------------
 // callClaude — spawn Claude Code subprocess
@@ -46,6 +46,9 @@ export function callClaude(prompt, options = {}) {
   const args = ["-p", "--no-session-persistence"];
 
   if (options.model) {
+    if (!/^[a-zA-Z0-9._:-]+$/.test(options.model)) {
+      throw new Error(`Invalid model name: ${options.model}`);
+    }
     args.push("--model", options.model);
   }
 
@@ -93,7 +96,11 @@ export function callClaude(prompt, options = {}) {
  * @returns {string} Prompt text with variables substituted
  */
 export function loadPrompt(name, modeDir, vars = {}) {
-  const file = join(PROMPTS_DIR, modeDir, `${name}.md`);
+  const file = resolve(PROMPTS_DIR, modeDir, `${name}.md`);
+  if (!file.startsWith(PROMPTS_DIR)) {
+    console.error(`Path traversal blocked: ${name}/${modeDir}`);
+    process.exit(1);
+  }
   if (!existsSync(file)) {
     console.error(`Prompt file not found: ${file}`);
     console.error(`Expected prompts in: ${PROMPTS_DIR}/${modeDir}/`);
@@ -265,6 +272,11 @@ export function isBinaryFile(filePath) {
  * @param {string} filePath - Absolute or relative path to write to
  */
 export function saveFile(content, filePath) {
-  mkdirSync(dirname(filePath), { recursive: true });
-  writeFileSync(filePath, content);
+  const resolved = resolve(filePath);
+  const cwd = resolve(process.cwd());
+  if (!resolved.startsWith(cwd + "/") && !resolved.startsWith("/tmp/") && resolved !== cwd) {
+    throw new Error(`Output path escapes working directory: ${resolved}`);
+  }
+  mkdirSync(dirname(resolved), { recursive: true });
+  writeFileSync(resolved, content);
 }

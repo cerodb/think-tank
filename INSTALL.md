@@ -11,9 +11,9 @@
 ### 1. Copy plugin to Claude Code cache
 
 ```bash
+# Run from inside the plugin directory (where package.json lives)
 mkdir -p ~/.claude/plugins/cache/local/think-tank/1.0.0
-cp -r adversarial-debate-plugin/* adversarial-debate-plugin/.claude-plugin \
-  ~/.claude/plugins/cache/local/think-tank/1.0.0/
+cp -r . ~/.claude/plugins/cache/local/think-tank/1.0.0/
 ```
 
 ### 2. Register the plugin

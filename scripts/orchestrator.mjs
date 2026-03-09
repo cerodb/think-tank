@@ -162,6 +162,10 @@ function main() {
   }
 
   // Check for custom mode in prompts/<mode>/ directory
+  if (!/^[a-z0-9-]+$/.test(modeName)) {
+    console.error(`Invalid mode name: "${modeName}" (only lowercase letters, digits, hyphens allowed)`);
+    process.exit(1);
+  }
   const customModeDir = join(PROMPTS_DIR, modeName);
   if (existsSync(customModeDir)) {
     runCustomMode(modeName, args);
