@@ -11,7 +11,7 @@
 ```bash
 git clone https://github.com/cerodb/think-tank.git
 cd think-tank
-bash scripts/install.sh
+bash plugins/think-tank/scripts/install.sh
 ```
 
 Then restart Claude Code. That's it.
@@ -52,7 +52,7 @@ Think Tank orchestrates multiple Claude instances in structured roles to produce
 Edit the Markdown files in `prompts/` inside the plugin installation:
 
 ```
-~/.claude/plugins/cache/local/think-tank/1.0.0/prompts/
+~/.claude/plugins/cache/think-tank/think-tank/1.0.0/prompts/
   debate/         # critic.md, defender.md, synthesizer.md, ...
   review/         # bug-hunter.md, security-auditor.md, ...
   brainstorm/     # diverger.md, challenger.md, synthesizer.md
@@ -61,19 +61,21 @@ Edit the Markdown files in `prompts/` inside the plugin installation:
 
 ## Manual Install
 
-If the install script doesn't work, these are the three steps it performs:
+If the install script doesn't work, these are the four steps it performs:
 
-1. Copy plugin files to `~/.claude/plugins/cache/local/think-tank/1.0.0/`
-2. Register `"think-tank@local"` in `~/.claude/plugins/installed_plugins.json`
-3. Enable `"think-tank@local": true` in `~/.claude/settings.json`
+1. Register `think-tank` marketplace in `~/.claude/plugins/known_marketplaces.json`
+2. Copy marketplace structure to `~/.claude/plugins/marketplaces/think-tank/`
+3. Copy plugin to cache at `~/.claude/plugins/cache/think-tank/think-tank/1.0.0/`
+4. Register and enable `"think-tank@think-tank"` in `installed_plugins.json` and `settings.json`
 
 ## Uninstall
 
 ```bash
-# Remove registration
-# Edit ~/.claude/plugins/installed_plugins.json — delete the "think-tank@local" entry
-# Edit ~/.claude/settings.json — delete "think-tank@local" from enabledPlugins
+# Edit ~/.claude/plugins/installed_plugins.json — delete the "think-tank@think-tank" entry
+# Edit ~/.claude/plugins/known_marketplaces.json — delete the "think-tank" entry
+# Edit ~/.claude/settings.json — delete "think-tank@think-tank" from enabledPlugins
 
 # Remove files
-rm -rf ~/.claude/plugins/cache/local/think-tank/
+rm -rf ~/.claude/plugins/cache/think-tank/think-tank/
+rm -rf ~/.claude/plugins/marketplaces/think-tank/
 ```
