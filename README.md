@@ -89,7 +89,7 @@ A Researcher explores the codebase on isolated git branches. A Verifier validate
 Create a hypothesis file first (template included):
 
 ```bash
-cp hypothesis-template.md hypothesis.md
+cp plugins/think-tank/hypothesis-template.md hypothesis.md
 # Edit with your research question
 
 /think-tank:hypothesis                              # reads ./hypothesis.md
@@ -118,10 +118,10 @@ Each cycle creates isolated branches (`hypothesis/researcher-c1-*`, `hypothesis/
 
 ## Customization
 
-All prompts live in `prompts/` as plain Markdown files organized by mode:
+All prompts live in `plugins/think-tank/prompts/` as plain Markdown files organized by mode:
 
 ```
-prompts/
+plugins/think-tank/prompts/
   debate/         # critic.md, defender.md, synthesizer.md, ...
   review/         # bug-hunter.md, security-auditor.md, ...
   brainstorm/     # diverger.md, challenger.md, synthesizer.md
@@ -132,19 +132,19 @@ prompts/
 
 ### Adding Custom Modes
 
-Create a new directory under `prompts/` with your agent prompt files:
+Create a new directory under `plugins/think-tank/prompts/` with your agent prompt files:
 
 ```bash
-mkdir prompts/my-mode
+mkdir plugins/think-tank/prompts/my-mode
 # Add agent-a.md, agent-b.md, synthesizer.md, etc.
 
 # Run it via --mode flag:
-node scripts/orchestrator.mjs my-mode input.md
+node plugins/think-tank/scripts/orchestrator.mjs my-mode input.md
 ```
 
 Prompt files are loaded alphabetically (excluding README.md). Each agent receives the document and previous agent outputs via `{DOCUMENT}` and `{PREVIOUS}` template variables.
 
-See `prompts/example-custom/` for a working example with Devil's Advocate and Pragmatist agents.
+See `plugins/think-tank/prompts/example-custom/` for a working example with Devil's Advocate and Pragmatist agents.
 
 ## Security Note
 
@@ -160,9 +160,9 @@ All prompts include injection guards via `--system-prompt` to prevent prompt inj
 
 1. Fork the repo
 2. Create a feature branch
-3. Add your mode under `prompts/<mode-name>/` with a README.md
-4. If it needs custom orchestration, add a module in `scripts/modes/`
-5. Run `node scripts/smoke-test.mjs` to validate structure
+3. Add your mode under `plugins/think-tank/prompts/<mode-name>/` with a README.md
+4. If it needs custom orchestration, add a module in `plugins/think-tank/scripts/modes/`
+5. Run `node plugins/think-tank/scripts/smoke-test.mjs` to validate structure
 6. Submit a PR
 
 ## License
