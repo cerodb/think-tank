@@ -7,28 +7,23 @@
 - Node.js 18+
 - git (required for hypothesis mode)
 
-## Important
+## Quick Install
 
-The plugin root **must** contain `.claude-plugin/plugin.json`. Without this manifest file, Claude Code silently ignores the plugin — no error, no warning.
+Download or clone the repo, then run:
 
-## Install permanently (recommended)
+```bash
+./install.sh
+```
 
-1. Download and unzip the repo (or clone it)
-2. Install the plugin:
+That's it. The `/think-tank:*` commands will be available in all future Claude Code sessions.
+
+## Manual Install
+
+If you prefer to install manually:
 
 ```bash
 claude plugin install /path/to/think-tank
 ```
-
-Done. The `/think-tank:*` commands will be available in all future sessions.
-
-## Install per-session (for testing)
-
-```bash
-claude --plugin-dir /path/to/think-tank
-```
-
-Commands are available only for that session.
 
 ## Install from GitHub marketplace (when repo is public)
 
