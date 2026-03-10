@@ -10,8 +10,14 @@
   "plugins": [
     {
       "name": "think-tank",
+      "description": "4 modes (debate, review, brainstorm, hypothesis) that orchestrate multiple Claude instances for structured analysis and improvement",
+      "version": "1.0.0",
+      "author": {
+        "name": "cerodb"
+      },
       "source": "./plugins/think-tank",
-      "description": "4 modes (debate, review, brainstorm, hypothesis) that orchestrate multiple Claude instances for structured analysis and improvement"
+      "category": "development",
+      "tags": ["multi-agent", "debate", "review", "brainstorm", "hypothesis", "collaboration"]
     }
   ]
 }
