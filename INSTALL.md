@@ -7,19 +7,13 @@
 - Node.js 18+
 - git (required for hypothesis mode)
 
-## Install from zip (recommended for private repos)
+## Install from local directory
 
-1. Download `think-tank.zip`
-2. Unzip it:
-
-```bash
-unzip think-tank.zip -d ~/.claude/plugins/think-tank
-```
-
-3. Launch Claude Code with the plugin loaded:
+1. Clone or unzip the repo anywhere on your machine
+2. Launch Claude Code with `--plugin-dir` pointing to it:
 
 ```bash
-claude --plugin-dir ~/.claude/plugins/think-tank/plugins/think-tank
+claude --plugin-dir /path/to/think-tank
 ```
 
 The `/think-tank:*` commands will be available immediately.
@@ -27,14 +21,14 @@ The `/think-tank:*` commands will be available immediately.
 To always load it, add to your shell profile (`.bashrc` / `.zshrc`):
 
 ```bash
-alias claude='claude --plugin-dir ~/.claude/plugins/think-tank/plugins/think-tank'
+alias claude='claude --plugin-dir /path/to/think-tank'
 ```
 
-## Install from GitHub marketplace (when repo is public)
+## Install from GitHub (when repo is public)
 
 ```
 /plugin marketplace add cerodb/think-tank
-/plugin install think-tank@think-tank
+/plugin install think-tank think-tank
 ```
 
 ## Commands
