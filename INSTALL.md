@@ -7,24 +7,32 @@
 - Node.js 18+
 - git (required for hypothesis mode)
 
-## Install from local directory
+## Important
 
-1. Clone or unzip the repo anywhere on your machine
-2. Launch Claude Code with `--plugin-dir` pointing to it:
+The plugin root **must** contain `.claude-plugin/plugin.json`. Without this manifest file, Claude Code silently ignores the plugin — no error, no warning.
+
+## Install permanently (recommended)
+
+1. Download and unzip the repo (or clone it)
+2. Install the plugin:
+
+```bash
+claude plugin install /path/to/think-tank
+```
+
+Done. The `/think-tank:*` commands will be available in all future sessions.
+
+## Install per-session (for testing)
 
 ```bash
 claude --plugin-dir /path/to/think-tank
 ```
 
-The `/think-tank:*` commands will be available immediately.
+Commands are available only for that session.
 
-To always load it, add to your shell profile (`.bashrc` / `.zshrc`):
+## Install from GitHub marketplace (when repo is public)
 
-```bash
-alias claude='claude --plugin-dir /path/to/think-tank'
-```
-
-## Install from GitHub (when repo is public)
+From inside Claude Code:
 
 ```
 /plugin marketplace add cerodb/think-tank
@@ -61,3 +69,9 @@ Think Tank orchestrates multiple Claude instances in structured roles:
 2. **Review** — Bug Hunter + Security Auditor + Performance Analyst analyze independently, Synthesizer merges into prioritized action list
 3. **Brainstorm** — Diverger generates ideas, Challenger stress-tests them, Synthesizer ranks top 3 with recommendation
 4. **Hypothesis** — Researcher explores on git branches, Verifier validates claims, Report synthesizes confirm/reject/pivot
+
+## Uninstall
+
+```bash
+claude plugin uninstall think-tank
+```
