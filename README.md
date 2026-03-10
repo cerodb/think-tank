@@ -11,7 +11,15 @@ From inside Claude Code:
 /plugin install think-tank@think-tank
 ```
 
-Then use it:
+Try it on this README (a quick way to verify the install works):
+
+```
+/think-tank:debate README.md
+```
+
+This runs a CRITIC → DEFENDER → SYNTHESIZER pipeline on the README itself. You'll get 3 output files: a debate transcript, an improved version, and a regression check. Takes ~8 minutes.
+
+More examples:
 
 ```
 /think-tank:debate specs/architecture.md
