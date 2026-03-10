@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "type": "module",
   "description": "Multi-agent collaboration plugin for Claude Code — debate, review, brainstorm, and hypothesis modes",
-  "author": "cerodb",
+  "author": "cerodb (https://x.com/gabrielsimonet)",
   "license": "MIT",
   "keywords": [
     "claude",

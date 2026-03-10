@@ -3,7 +3,8 @@
   "version": "1.0.0",
   "description": "Multi-agent collaboration tool: 4 modes (debate, review, brainstorm, hypothesis) that orchestrate multiple Claude instances for structured analysis and improvement.",
   "author": {
-    "name": "Gabriel Simonet"
+    "name": "cerodb",
+    "url": "https://x.com/gabrielsimonet"
   },
   "license": "MIT",
   "keywords": ["multi-agent", "debate", "review", "brainstorm", "hypothesis", "collaboration", "red-team", "code-review"]
