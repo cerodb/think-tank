@@ -1,7 +1,7 @@
 ---
 description: "Run diverge-challenge-synthesize ideation on a topic or document"
 argument-hint: "<topic-or-file> [--output-dir DIR] [--model MODEL]"
-allowed-tools: ["Bash(node ${CLAUDE_PLUGIN_ROOT}/scripts/orchestrator.mjs brainstorm:*)"]
+allowed-tools: ["Bash(${CLAUDE_PLUGIN_ROOT}/bin/think-tank brainstorm:*)", "Bash(node ${CLAUDE_PLUGIN_ROOT}/scripts/orchestrator.mjs brainstorm:*)"]
 ---
 
 # Think Tank — Brainstorm Mode
@@ -11,7 +11,7 @@ Run multi-agent brainstorming on a topic or document.
 If $ARGUMENTS is provided, use it directly:
 
 ```!
-node "${CLAUDE_PLUGIN_ROOT}/scripts/orchestrator.mjs" brainstorm $ARGUMENTS
+"${CLAUDE_PLUGIN_ROOT}/bin/think-tank" brainstorm $ARGUMENTS
 ```
 
 If $ARGUMENTS is empty, ask the user what topic they want to brainstorm, then run the command above with their answer.

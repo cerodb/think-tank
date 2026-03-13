@@ -1,7 +1,7 @@
 ---
 description: "Run hypothesis-driven research with git branching and evidence gathering"
 argument-hint: "[--file hypothesis.md] [--cycles N] [--output-dir DIR] [--model MODEL]"
-allowed-tools: ["Bash(node ${CLAUDE_PLUGIN_ROOT}/scripts/orchestrator.mjs hypothesis:*)"]
+allowed-tools: ["Bash(${CLAUDE_PLUGIN_ROOT}/bin/think-tank hypothesis:*)", "Bash(node ${CLAUDE_PLUGIN_ROOT}/scripts/orchestrator.mjs hypothesis:*)"]
 ---
 
 # Think Tank — Hypothesis Mode
@@ -11,7 +11,7 @@ Run hypothesis-driven research using git branches for isolated exploration.
 If $ARGUMENTS is provided, use it directly:
 
 ```!
-node "${CLAUDE_PLUGIN_ROOT}/scripts/orchestrator.mjs" hypothesis $ARGUMENTS
+"${CLAUDE_PLUGIN_ROOT}/bin/think-tank" hypothesis $ARGUMENTS
 ```
 
 If $ARGUMENTS is empty, check for a `hypothesis.md` file in the current directory. If it exists, use it. If not, tell the user to create one using the template at `${CLAUDE_PLUGIN_ROOT}/hypothesis-template.md`.

@@ -1,7 +1,7 @@
 ---
 description: "Run adversarial debate to stress-test and improve a document"
 argument-hint: "<file-path> [--rounds N] [--output-dir DIR] [--model MODEL]"
-allowed-tools: ["Bash(node ${CLAUDE_PLUGIN_ROOT}/scripts/orchestrator.mjs debate:*)"]
+allowed-tools: ["Bash(${CLAUDE_PLUGIN_ROOT}/bin/think-tank debate:*)", "Bash(node ${CLAUDE_PLUGIN_ROOT}/scripts/orchestrator.mjs debate:*)"]
 ---
 
 # Think Tank — Debate Mode
@@ -11,7 +11,7 @@ Run multi-agent adversarial debate on the specified document.
 If $ARGUMENTS is provided, use it directly:
 
 ```!
-node "${CLAUDE_PLUGIN_ROOT}/scripts/orchestrator.mjs" debate $ARGUMENTS
+"${CLAUDE_PLUGIN_ROOT}/bin/think-tank" debate $ARGUMENTS
 ```
 
 If $ARGUMENTS is empty, ask the user which file they want to analyze, then run the command above with their answer.

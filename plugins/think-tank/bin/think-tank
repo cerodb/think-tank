@@ -1,0 +1,9 @@
+#!/usr/bin/env bash
+# Self-discovering entry point for think-tank orchestrator.
+# Resolves plugin root from its own location — does NOT depend on
+# CLAUDE_PLUGIN_ROOT being set by the host environment.
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+PLUGIN_ROOT="$(dirname "$SCRIPT_DIR")"
+
+exec node "$PLUGIN_ROOT/scripts/orchestrator.mjs" "$@"

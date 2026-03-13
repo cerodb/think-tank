@@ -1,7 +1,7 @@
 ---
 description: "Run multi-reviewer code review (bug/security/performance analysis)"
 argument-hint: "<file-path> [--output-dir DIR] [--model MODEL]"
-allowed-tools: ["Bash(node ${CLAUDE_PLUGIN_ROOT}/scripts/orchestrator.mjs review:*)"]
+allowed-tools: ["Bash(${CLAUDE_PLUGIN_ROOT}/bin/think-tank review:*)", "Bash(node ${CLAUDE_PLUGIN_ROOT}/scripts/orchestrator.mjs review:*)"]
 ---
 
 # Think Tank — Review Mode
@@ -11,7 +11,7 @@ Run multi-agent code review on the specified file.
 If $ARGUMENTS is provided, use it directly:
 
 ```!
-node "${CLAUDE_PLUGIN_ROOT}/scripts/orchestrator.mjs" review $ARGUMENTS
+"${CLAUDE_PLUGIN_ROOT}/bin/think-tank" review $ARGUMENTS
 ```
 
 If $ARGUMENTS is empty, ask the user which file they want to review, then run the command above with their answer.

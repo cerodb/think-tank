@@ -14,6 +14,7 @@ import {
   closeSync,
 } from "node:fs";
 import { join, dirname, resolve } from "node:path";
+import { tmpdir } from "node:os";
 import { fileURLToPath } from "node:url";
 
 // ---------------------------------------------------------------------------
@@ -475,9 +476,15 @@ export function writeTaskOutput(summary) {
     candidates.push(resolve(cwd, ".output"));
   }
 
+  const sysTmp = resolve(tmpdir());
   for (const target of candidates) {
     try {
-      if (!target.startsWith(cwd + "/") && !target.startsWith("/tmp/") && target !== cwd) {
+      if (
+        !target.startsWith(cwd + "/") &&
+        !target.startsWith("/tmp/") &&
+        !target.startsWith(sysTmp + "/") &&
+        target !== cwd
+      ) {
         continue;
       }
       mkdirSync(dirname(target), { recursive: true });
