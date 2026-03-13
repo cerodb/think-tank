@@ -19,6 +19,8 @@ import {
   timestamp,
   preview,
   saveFile,
+  makeTaskSummary,
+  writeTaskOutput,
 } from "../lib/core.mjs";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
@@ -53,6 +55,11 @@ function git(...args) {
 function gitAvailable() {
   const r = git("--version");
   return r.ok;
+}
+
+function inGitRepo() {
+  const r = git("rev-parse", "--is-inside-work-tree");
+  return r.ok && r.stdout === "true";
 }
 
 function getCurrentBranch() {
@@ -102,6 +109,7 @@ function checkout(branchName) {
  * @param {string|null} [args.outputDir] - Output directory
  */
 export function runHypothesis(args) {
+  const startedAt = Date.now();
   const { model = null, cycles = 1 } = args;
   let { outputDir } = args;
 
@@ -127,9 +135,14 @@ export function runHypothesis(args) {
   }
 
   // Check git availability
-  const hasGit = gitAvailable();
-  if (!hasGit) {
+  const hasGitBinary = gitAvailable();
+  const hasGitRepo = hasGitBinary && inGitRepo();
+  const hasGit = hasGitBinary && hasGitRepo;
+  if (!hasGitBinary) {
     console.warn("WARNING: git not available. Running without branch isolation.");
+    console.warn("  Researcher and Verifier will operate on current working directory.\n");
+  } else if (!hasGitRepo) {
+    console.warn("WARNING: current directory is not a git repository. Running without branch isolation.");
     console.warn("  Researcher and Verifier will operate on current working directory.\n");
   }
 
@@ -322,6 +335,15 @@ export function runHypothesis(args) {
     console.log(`Research log:  ${logFile}`);
     console.log(`Final report:  ${reportFile}`);
     console.log(`\nDone. ${totalCalls} Claude calls completed.`);
+    writeTaskOutput(
+      makeTaskSummary({
+        mode: "hypothesis",
+        status: "ok",
+        outputFiles: [logFile, reportFile],
+        durationMs: Date.now() - startedAt,
+        model,
+      })
+    );
 
   } finally {
     // Always return to original branch on error

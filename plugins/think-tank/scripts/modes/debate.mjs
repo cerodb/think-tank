@@ -17,6 +17,8 @@ import {
   wrapDoc,
   saveFile,
   isBinaryFile,
+  makeTaskSummary,
+  writeTaskOutput,
 } from "../lib/core.mjs";
 
 // ---------------------------------------------------------------------------
@@ -41,6 +43,7 @@ function loadDebatePrompt(name, vars = {}) {
  * @param {string|null} [args.outputDir] - Output directory
  */
 export function runDebate(args) {
+  const startedAt = Date.now();
   const { rounds = 2, model = null } = args;
   let { inputFile, outputDir } = args;
 
@@ -191,4 +194,13 @@ export function runDebate(args) {
   console.log(`Improved document: ${improvedFile}`);
   console.log(`Diff evaluation:   ${diffEvalFile}`);
   console.log(`\nDone. ${totalCalls} Claude calls completed.`);
+  writeTaskOutput(
+    makeTaskSummary({
+      mode: "debate",
+      status: "ok",
+      outputFiles: [debateFile, improvedFile, diffEvalFile],
+      durationMs: Date.now() - startedAt,
+      model,
+    })
+  );
 }

@@ -16,6 +16,8 @@ import {
   preview,
   saveFile,
   isBinaryFile,
+  makeTaskSummary,
+  writeTaskOutput,
 } from "../lib/core.mjs";
 
 // ---------------------------------------------------------------------------
@@ -40,6 +42,7 @@ function loadBrainstormPrompt(name, vars = {}) {
  * @param {string|null} [args.outputDir] - Output directory
  */
 export function runBrainstorm(args) {
+  const startedAt = Date.now();
   const { model = null } = args;
   let { inputFile, topic, outputDir } = args;
 
@@ -56,10 +59,9 @@ export function runBrainstorm(args) {
   // Detect input: file vs topic string
   // If inputFile is set, check if it's an existing file. If not, treat as topic.
   if (inputFile && !existsSync(resolve(inputFile))) {
-    // Not a real file — treat as topic string
-    if (!topic) {
-      topic = inputFile;
-    }
+    // Not a real file — treat positional args as topic text.
+    const mergedTopic = topic ? `${inputFile} ${topic}` : inputFile;
+    topic = mergedTopic.trim();
     inputFile = null;
   }
 
@@ -182,4 +184,13 @@ export function runBrainstorm(args) {
 
   console.log(`Brainstorm output: ${outputFile}`);
   console.log(`\nDone. ${totalCalls} Claude calls completed.`);
+  writeTaskOutput(
+    makeTaskSummary({
+      mode: "brainstorm",
+      status: "ok",
+      outputFiles: [outputFile],
+      durationMs: Date.now() - startedAt,
+      model,
+    })
+  );
 }

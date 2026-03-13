@@ -23,6 +23,7 @@ import { fileURLToPath } from "node:url";
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const PLUGIN_ROOT = resolve(__dirname, "..", "..");
 const PROMPTS_DIR = resolve(PLUGIN_ROOT, "prompts");
+const MODEL_NAME_RE = /^[a-zA-Z0-9._:-]+$/;
 
 // ---------------------------------------------------------------------------
 // callClaude — spawn Claude Code subprocess
@@ -46,7 +47,7 @@ export function callClaude(prompt, options = {}) {
   const args = ["-p", "--no-session-persistence"];
 
   if (options.model) {
-    if (!/^[a-zA-Z0-9._:-]+$/.test(options.model)) {
+    if (!MODEL_NAME_RE.test(options.model)) {
       throw new Error(`Invalid model name: ${options.model}`);
     }
     args.push("--model", options.model);
@@ -123,7 +124,19 @@ export function loadPrompt(name, modeDir, vars = {}) {
  * Parse CLI arguments into a structured object.
  *
  * @param {string[]} argv - Arguments after mode extraction
- * @returns {{ inputFile: string|null, topic: string|null, rounds: number, cycles: number, model: string|null, outputDir: string|null, file: string|null, mode: string|null }}
+ * @returns {{
+ *   inputFile: string|null,
+ *   topic: string|null,
+ *   rounds: number,
+ *   cycles: number,
+ *   model: string|null,
+ *   outputDir: string|null,
+ *   file: string|null,
+ *   mode: string|null,
+ *   help?: boolean,
+ *   unknownFlags: string[],
+ *   parseWarnings: string[]
+ * }}
  */
 export function parseArgs(argv) {
   const result = {
@@ -135,42 +148,114 @@ export function parseArgs(argv) {
     outputDir: null,
     file: null,
     mode: null,
+    unknownFlags: [],
+    parseWarnings: [],
+  };
+
+  const positionals = [];
+  const takeValue = (arg, i) => {
+    const eq = arg.indexOf("=");
+    if (eq !== -1) {
+      return { value: arg.slice(eq + 1), next: i };
+    }
+    if (argv[i + 1] && !argv[i + 1].startsWith("--")) {
+      return { value: argv[i + 1], next: i + 1 };
+    }
+    return { value: null, next: i };
   };
 
   for (let i = 0; i < argv.length; i++) {
     const arg = argv[i];
+    const flag = arg.includes("=") ? arg.slice(0, arg.indexOf("=")) : arg;
 
-    if (arg === "--rounds" && argv[i + 1]) {
-      result.rounds = parseInt(argv[i + 1], 10);
-      i++;
-    } else if (arg === "--cycles" && argv[i + 1]) {
-      result.cycles = parseInt(argv[i + 1], 10);
-      i++;
-    } else if (arg === "--model" && argv[i + 1]) {
-      result.model = argv[i + 1];
-      i++;
-    } else if (arg === "--output-dir" && argv[i + 1]) {
-      result.outputDir = argv[i + 1];
-      i++;
-    } else if (arg === "--file" && argv[i + 1]) {
-      result.file = argv[i + 1];
-      i++;
-    } else if (arg === "--mode" && argv[i + 1]) {
-      result.mode = argv[i + 1];
-      i++;
-    } else if (arg === "--topic" && argv[i + 1]) {
-      result.topic = argv[i + 1];
-      i++;
+    if (flag === "--rounds") {
+      const { value, next } = takeValue(arg, i);
+      if (value === null) {
+        result.parseWarnings.push("Missing value for --rounds");
+      } else {
+        const parsed = parseInt(value, 10);
+        if (Number.isFinite(parsed)) {
+          result.rounds = parsed;
+        } else {
+          result.parseWarnings.push(`Invalid --rounds value: ${value}`);
+        }
+      }
+      i = next;
+    } else if (flag === "--cycles") {
+      const { value, next } = takeValue(arg, i);
+      if (value === null) {
+        result.parseWarnings.push("Missing value for --cycles");
+      } else {
+        const parsed = parseInt(value, 10);
+        if (Number.isFinite(parsed)) {
+          result.cycles = parsed;
+        } else {
+          result.parseWarnings.push(`Invalid --cycles value: ${value}`);
+        }
+      }
+      i = next;
+    } else if (flag === "--model") {
+      const { value, next } = takeValue(arg, i);
+      if (value === null) {
+        result.parseWarnings.push("Missing value for --model");
+      } else {
+        result.model = value;
+      }
+      i = next;
+    } else if (flag === "--output-dir") {
+      const { value, next } = takeValue(arg, i);
+      if (value === null) {
+        result.parseWarnings.push("Missing value for --output-dir");
+      } else {
+        result.outputDir = value;
+      }
+      i = next;
+    } else if (flag === "--file") {
+      const { value, next } = takeValue(arg, i);
+      if (value === null) {
+        result.parseWarnings.push("Missing value for --file");
+      } else {
+        result.file = value;
+      }
+      i = next;
+    } else if (flag === "--mode") {
+      const { value, next } = takeValue(arg, i);
+      if (value === null) {
+        result.parseWarnings.push("Missing value for --mode");
+      } else {
+        result.mode = value;
+      }
+      i = next;
+    } else if (flag === "--topic") {
+      const { value, next } = takeValue(arg, i);
+      if (value === null) {
+        result.parseWarnings.push("Missing value for --topic");
+      } else {
+        result.topic = value;
+      }
+      i = next;
     } else if (arg === "--help" || arg === "-h") {
       result.help = true;
-    } else if (!arg.startsWith("--")) {
-      // First positional arg is inputFile
-      if (!result.inputFile) {
-        result.inputFile = arg;
-      } else if (!result.topic) {
-        // Second positional could be topic
-        result.topic = arg;
+    } else if (arg.startsWith("--")) {
+      const { value, next } = takeValue(arg, i);
+      if (value !== null && !arg.includes("=")) {
+        result.unknownFlags.push(`${arg}=${value}`);
+      } else {
+        result.unknownFlags.push(arg);
       }
+      i = next;
+    } else if (!arg.startsWith("--")) {
+      positionals.push(arg);
+    }
+  }
+
+  if (positionals.length > 0) {
+    result.inputFile = positionals[0];
+  }
+  if (positionals.length > 1) {
+    const tail = positionals.slice(1).join(" ").trim();
+    if (tail) {
+      result.topic = result.topic ? `${result.topic} ${tail}` : tail;
     }
   }
 
@@ -279,4 +364,129 @@ export function saveFile(content, filePath) {
   }
   mkdirSync(dirname(resolved), { recursive: true });
   writeFileSync(resolved, content);
+}
+
+// ---------------------------------------------------------------------------
+// validateEarlyArgs — fail fast before expensive model calls
+// ---------------------------------------------------------------------------
+
+/**
+ * Validate commonly used args before mode execution.
+ *
+ * @param {{
+ *   rounds?: number,
+ *   cycles?: number,
+ *   model?: string|null,
+ *   outputDir?: string|null
+ * }} args
+ */
+export function validateEarlyArgs(args) {
+  if (args.model && !MODEL_NAME_RE.test(args.model)) {
+    throw new Error(`Invalid --model value: ${args.model}`);
+  }
+
+  if (args.outputDir) {
+    const resolved = resolve(args.outputDir);
+    const cwd = resolve(process.cwd());
+    if (!resolved.startsWith(cwd + "/") && !resolved.startsWith("/tmp/") && resolved !== cwd) {
+      throw new Error(`Invalid --output-dir (outside workspace): ${args.outputDir}`);
+    }
+  }
+
+  if (args.rounds !== undefined && (!Number.isInteger(args.rounds) || args.rounds < 1)) {
+    throw new Error(`Invalid --rounds value: ${args.rounds} (must be integer >= 1)`);
+  }
+
+  if (args.cycles !== undefined && (!Number.isInteger(args.cycles) || args.cycles < 1)) {
+    throw new Error(`Invalid --cycles value: ${args.cycles} (must be integer >= 1)`);
+  }
+}
+
+// ---------------------------------------------------------------------------
+// makeTaskSummary — structured output contract
+// ---------------------------------------------------------------------------
+
+/**
+ * Build normalized summary payload for task/caller integrations.
+ *
+ * @param {{
+ *   mode: string,
+ *   status: "ok"|"error",
+ *   outputFiles?: string[],
+ *   durationMs?: number,
+ *   model?: string|null,
+ *   note?: string|null
+ * }} input
+ */
+export function makeTaskSummary(input) {
+  return {
+    tool: "think-tank",
+    mode: input.mode,
+    status: input.status,
+    output_files: Array.isArray(input.outputFiles) ? input.outputFiles : [],
+    duration_ms: Number.isFinite(input.durationMs) ? Math.max(0, Math.round(input.durationMs)) : null,
+    model: input.model || null,
+    note: input.note || null,
+    timestamp: new Date().toISOString(),
+  };
+}
+
+// ---------------------------------------------------------------------------
+// writeTaskOutput — best-effort short summary for task systems (.output/env)
+// ---------------------------------------------------------------------------
+
+/**
+ * Write a short run summary to task output file if configured.
+ *
+ * Recognized env vars (first available wins):
+ * - TASK_OUTPUT_FILE
+ * - CLAUDE_TASK_OUTPUT
+ * - CLAUDE_OUTPUT_FILE
+ * - OUTPUT_FILE
+ *
+ * Fallback:
+ * - writes to ./.output (creates file if missing)
+ *
+ * @param {string|Object} summary
+ * @returns {string|null} Path written, or null on failure
+ */
+export function writeTaskOutput(summary) {
+  let text = "";
+  if (typeof summary === "string") {
+    text = summary.trim() + "\n";
+  } else if (summary && typeof summary === "object") {
+    text = JSON.stringify(summary, null, 2) + "\n";
+  } else {
+    text = "\n";
+  }
+  const cwd = resolve(process.cwd());
+
+  const candidates = [];
+  for (const name of ["TASK_OUTPUT_FILE", "CLAUDE_TASK_OUTPUT", "CLAUDE_OUTPUT_FILE", "OUTPUT_FILE"]) {
+    const value = process.env[name];
+    if (value) {
+      candidates.push(resolve(value));
+    }
+  }
+
+  if (candidates.length === 0) {
+    candidates.push(resolve(cwd, ".output"));
+  } else {
+    candidates.push(resolve(cwd, ".output"));
+  }
+
+  for (const target of candidates) {
+    try {
+      if (!target.startsWith(cwd + "/") && !target.startsWith("/tmp/") && target !== cwd) {
+        continue;
+      }
+      mkdirSync(dirname(target), { recursive: true });
+      writeFileSync(target, text, "utf-8");
+      return target;
+    } catch {
+      // best-effort only
+    }
+  }
+
+  return null;
 }

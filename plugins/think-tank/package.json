@@ -1,6 +1,6 @@
 {
   "name": "think-tank",
-  "version": "1.0.0",
+  "version": "1.1.1",
   "type": "module",
   "description": "Multi-agent collaboration plugin for Claude Code — debate, review, brainstorm, and hypothesis modes",
   "author": "cerodb (https://x.com/gabrielsimonet)",

@@ -18,6 +18,8 @@ import {
   wrapDoc,
   saveFile,
   isBinaryFile,
+  makeTaskSummary,
+  writeTaskOutput,
 } from "../lib/core.mjs";
 
 // ---------------------------------------------------------------------------
@@ -51,6 +53,7 @@ const REVIEWERS = [
  * @param {string|null} [args.outputDir] - Output directory
  */
 export function runReview(args) {
+  const startedAt = Date.now();
   const { model = null } = args;
   let { inputFile, outputDir } = args;
 
@@ -170,4 +173,13 @@ export function runReview(args) {
   console.log(`Review details:    ${detailsFile}`);
   console.log(`Synthesized review: ${reviewFile}`);
   console.log(`\nDone. ${totalCalls} Claude calls completed.`);
+  writeTaskOutput(
+    makeTaskSummary({
+      mode: "review",
+      status: "ok",
+      outputFiles: [detailsFile, reviewFile],
+      durationMs: Date.now() - startedAt,
+      model,
+    })
+  );
 }

@@ -9,16 +9,16 @@ Think Tank is a multi-agent collaboration plugin for Claude Code. It runs multip
 
 ## Available Modes
 
-### `/tank:debate <file> [--rounds N] [--output-dir DIR]`
+### `/think-tank:debate <file> [--rounds N] [--output-dir DIR]`
 Adversarial document improvement. A CRITIC attacks the document across 6 vectors, a DEFENDER responds, and after N rounds a SYNTHESIZER produces an improved version. Best for: specs, architecture docs, proposals, research.
 
-### `/tank:review <file> [--output-dir DIR]`
+### `/think-tank:review <file> [--output-dir DIR]`
 Multi-reviewer code review. Three specialists (Bug Hunter, Security Auditor, Performance Analyst) analyze code independently, then a Synthesizer merges findings into a prioritized action list. Best for: source code, scripts, configurations.
 
-### `/tank:brainstorm <topic-or-file> [--output-dir DIR]`
+### `/think-tank:brainstorm <topic-or-file> [--output-dir DIR]`
 Diverge-challenge-synthesize ideation. A Diverger generates 5+ ideas, a Challenger stress-tests them, and a Synthesizer ranks the top 3 with a final recommendation. Accepts a topic string or file path. Best for: design decisions, feature planning, strategy.
 
-### `/tank:hypothesis [--file hypothesis.md] [--cycles N] [--output-dir DIR]`
+### `/think-tank:hypothesis [--file hypothesis.md] [--cycles N] [--output-dir DIR]`
 Hypothesis-driven research with git branching. A Researcher explores the codebase on isolated branches, a Verifier validates claims independently, and a Report synthesizes findings into confirm/reject/pivot. Best for: codebase investigation, bug hunting, architecture analysis.
 
 ## Common Options
@@ -31,8 +31,8 @@ Hypothesis-driven research with git branching. A Researcher explores the codebas
 ## Examples
 
 ```
-/tank:debate specs/architecture.md --rounds 3
-/tank:review src/auth/login.js
-/tank:brainstorm "How should we design the caching layer?"
-/tank:hypothesis --file hypothesis.md --cycles 2
+/think-tank:debate specs/architecture.md --rounds 3
+/think-tank:review src/auth/login.js
+/think-tank:brainstorm "How should we design the caching layer?"
+/think-tank:hypothesis --file hypothesis.md --cycles 2
 ```

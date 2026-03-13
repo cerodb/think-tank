@@ -15,9 +15,18 @@
  */
 
 import { readdirSync, readFileSync, existsSync } from "node:fs";
-import { join, dirname } from "node:path";
+import { join, dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
-import { parseArgs, callClaude, wrapDoc, timestamp, saveFile } from "./lib/core.mjs";
+import {
+  parseArgs,
+  validateEarlyArgs,
+  callClaude,
+  wrapDoc,
+  timestamp,
+  saveFile,
+  makeTaskSummary,
+  writeTaskOutput,
+} from "./lib/core.mjs";
 import { runDebate } from "./modes/debate.mjs";
 import { runReview } from "./modes/review.mjs";
 import { runBrainstorm } from "./modes/brainstorm.mjs";
@@ -43,6 +52,7 @@ const MODES = {
 // ---------------------------------------------------------------------------
 
 function runCustomMode(modeName, args) {
+  const startedAt = Date.now();
   const modeDir = join(PROMPTS_DIR, modeName);
 
   // Load all .md files except README.md, sorted alphabetically
@@ -57,14 +67,18 @@ function runCustomMode(modeName, args) {
 
   // Read input document
   let doc = "";
-  if (args.inputFile) {
-    if (!existsSync(args.inputFile)) {
-      console.error(`Input file not found: ${args.inputFile}`);
-      process.exit(1);
-    }
-    doc = readFileSync(args.inputFile, "utf-8");
+  let inputLabel = args.inputFile || args.topic || "(none)";
+  const candidate = args.inputFile ? resolve(args.inputFile) : null;
+  if (candidate && existsSync(candidate)) {
+    doc = readFileSync(candidate, "utf-8");
+    inputLabel = candidate;
+  } else if (candidate) {
+    const mergedTopic = args.topic ? `${args.inputFile} ${args.topic}` : args.inputFile;
+    doc = mergedTopic;
+    inputLabel = `"${mergedTopic}"`;
   } else if (args.topic) {
     doc = args.topic;
+    inputLabel = `"${args.topic}"`;
   } else {
     console.error(`Custom mode "${modeName}" requires an input file or --topic`);
     process.exit(1);
@@ -76,7 +90,7 @@ function runCustomMode(modeName, args) {
 
   console.log(`\n=== Custom Mode: ${modeName} ===`);
   console.log(`Agents: ${promptFiles.map((f) => f.replace(".md", "")).join(" → ")}`);
-  console.log(`Input: ${args.inputFile || args.topic}\n`);
+  console.log(`Input: ${inputLabel}\n`);
 
   let previousOutput = "";
   const sections = [];
@@ -108,6 +122,15 @@ function runCustomMode(modeName, args) {
   const outPath = join(outputDir, `${modeName}-${ts}.md`);
   saveFile(output, outPath);
   console.log(`\nOutput saved to: ${outPath}`);
+  writeTaskOutput(
+    makeTaskSummary({
+      mode: modeName,
+      status: "ok",
+      outputFiles: [outPath],
+      durationMs: Date.now() - startedAt,
+      model: args.model || null,
+    })
+  );
 }
 
 // ---------------------------------------------------------------------------
@@ -153,6 +176,20 @@ function main() {
   const rest = argv.slice(1);
   const args = parseArgs(rest);
   args.mode = modeName;
+  if (args.parseWarnings.length > 0) {
+    for (const warning of args.parseWarnings) {
+      console.warn(`Argument warning: ${warning}`);
+    }
+  }
+  if (args.unknownFlags.length > 0) {
+    console.warn(`Ignoring unknown flags: ${args.unknownFlags.join(", ")}`);
+  }
+  try {
+    validateEarlyArgs(args);
+  } catch (err) {
+    console.error(`Argument error: ${err.message}`);
+    process.exit(1);
+  }
 
   // Check built-in modes first
   const mode = MODES[modeName];
