@@ -9,6 +9,7 @@ import {
   writeFileSync,
   mkdirSync,
   existsSync,
+  unlinkSync,
   openSync,
   readSync,
   closeSync,
@@ -42,7 +43,7 @@ const MODEL_NAME_RE = /^[a-zA-Z0-9._:-]+$/;
  * @returns {string} Claude's response text
  */
 export function callClaude(prompt, options = {}) {
-  const env = { ...process.env };
+  const env = { ...process.env, ...(options.env || {}) };
   delete env.CLAUDECODE; // allow spawning from within Claude Code
 
   const args = ["-p", "--no-session-persistence"];
@@ -60,6 +61,14 @@ export function callClaude(prompt, options = {}) {
 
   if (options.tools && options.tools.length > 0) {
     args.push("--allowedTools", options.tools.join(","));
+  }
+
+  if (options.maxBudgetUsd !== undefined && options.maxBudgetUsd !== null) {
+    const budget = parseFloat(String(options.maxBudgetUsd));
+    if (!Number.isFinite(budget) || budget <= 0) {
+      throw new Error(`Invalid --max-budget-usd: ${options.maxBudgetUsd}`);
+    }
+    args.push("--max-budget-usd", String(budget));
   }
 
   const timeout = options.timeout || 600_000; // 10 min default
@@ -81,6 +90,77 @@ export function callClaude(prompt, options = {}) {
   const output = result.stdout.trim();
   if (!output) {
     console.warn("WARNING: Claude returned an empty response.");
+  }
+  return output;
+}
+
+// ---------------------------------------------------------------------------
+// callCodex — spawn Codex CLI subprocess
+// ---------------------------------------------------------------------------
+
+/**
+ * Call Codex via `codex exec` with output file capture.
+ *
+ * @param {string} prompt - Full prompt text (passed via stdin using positional `-`)
+ * @param {Object} [options]
+ * @param {string} [options.model] - Model override (e.g. "gpt-5.4")
+ * @param {string} [options.sandbox="read-only"] - Sandbox mode
+ * @param {number} [options.timeout=600000] - Timeout in ms
+ * @returns {string} Codex's response text
+ */
+export function callCodex(prompt, options = {}) {
+  const env = { ...process.env, ...(options.env || {}) };
+  delete env.CLAUDECODE;
+
+  const timeout = options.timeout || 600_000;
+  const sandbox = options.sandbox || "read-only";
+  const outFile = join(tmpdir(), `tt-codex-${Date.now()}-${process.pid}.txt`);
+
+  const args = [
+    "exec",
+    "--sandbox", sandbox,
+    "--skip-git-repo-check",
+    "--color", "never",
+    "-o", outFile,
+    "-",
+  ];
+
+  if (options.model) {
+    if (!MODEL_NAME_RE.test(options.model)) {
+      throw new Error(`Invalid model name: ${options.model}`);
+    }
+    args.splice(1, 0, "--model", options.model);
+  }
+
+  const result = spawnSync("codex", args, {
+    input: prompt,
+    encoding: "utf-8",
+    maxBuffer: 50 * 1024 * 1024,
+    timeout,
+    env,
+    stdio: ["pipe", "pipe", "pipe"],
+  });
+
+  if (result.error) {
+    try { unlinkSync(outFile); } catch {}
+    throw result.error;
+  }
+  if (result.status !== 0) {
+    try { unlinkSync(outFile); } catch {}
+    const err = result.stderr || "Unknown error";
+    throw new Error(`codex exited with status ${result.status}: ${err}`);
+  }
+
+  let output = "";
+  if (existsSync(outFile)) {
+    output = readFileSync(outFile, "utf-8").trim();
+    try { unlinkSync(outFile); } catch {}
+  }
+  if (!output) {
+    output = (result.stdout || "").trim();
+  }
+  if (!output) {
+    console.warn("WARNING: Codex returned an empty response.");
   }
   return output;
 }
@@ -131,6 +211,10 @@ export function loadPrompt(name, modeDir, vars = {}) {
  *   rounds: number,
  *   cycles: number,
  *   model: string|null,
+ *   target: string,
+ *   arbiter: boolean,
+ *   arbiterTarget: string,
+ *   maxBudgetUsd: string,
  *   outputDir: string|null,
  *   file: string|null,
  *   mode: string|null,
@@ -146,6 +230,10 @@ export function parseArgs(argv) {
     rounds: 2,
     cycles: 1,
     model: null,
+    target: "codex",
+    arbiter: false,
+    arbiterTarget: "codex",
+    maxBudgetUsd: "0.50",
     outputDir: null,
     file: null,
     mode: null,
@@ -201,6 +289,32 @@ export function parseArgs(argv) {
         result.parseWarnings.push("Missing value for --model");
       } else {
         result.model = value;
+      }
+      i = next;
+    } else if (flag === "--target") {
+      const { value, next } = takeValue(arg, i);
+      if (value === null) {
+        result.parseWarnings.push("Missing value for --target");
+      } else {
+        result.target = value;
+      }
+      i = next;
+    } else if (flag === "--arbiter") {
+      result.arbiter = true;
+    } else if (flag === "--arbiter-target") {
+      const { value, next } = takeValue(arg, i);
+      if (value === null) {
+        result.parseWarnings.push("Missing value for --arbiter-target");
+      } else {
+        result.arbiterTarget = value;
+      }
+      i = next;
+    } else if (flag === "--max-budget-usd") {
+      const { value, next } = takeValue(arg, i);
+      if (value === null) {
+        result.parseWarnings.push("Missing value for --max-budget-usd");
+      } else {
+        result.maxBudgetUsd = value;
       }
       i = next;
     } else if (flag === "--output-dir") {
@@ -377,6 +491,9 @@ export function saveFile(content, filePath) {
  * @param {{
  *   rounds?: number,
  *   cycles?: number,
+ *   target?: string,
+ *   arbiterTarget?: string,
+ *   maxBudgetUsd?: string,
  *   model?: string|null,
  *   outputDir?: string|null
  * }} args
@@ -400,6 +517,21 @@ export function validateEarlyArgs(args) {
 
   if (args.cycles !== undefined && (!Number.isInteger(args.cycles) || args.cycles < 1)) {
     throw new Error(`Invalid --cycles value: ${args.cycles} (must be integer >= 1)`);
+  }
+
+  if (args.target !== undefined && !["claude", "codex", "both"].includes(args.target)) {
+    throw new Error(`Invalid --target value: ${args.target} (use claude, codex, or both)`);
+  }
+
+  if (args.arbiterTarget !== undefined && !["claude", "codex"].includes(args.arbiterTarget)) {
+    throw new Error(`Invalid --arbiter-target value: ${args.arbiterTarget} (use claude or codex)`);
+  }
+
+  if (args.maxBudgetUsd !== undefined && args.maxBudgetUsd !== null) {
+    const budget = parseFloat(String(args.maxBudgetUsd));
+    if (!Number.isFinite(budget) || budget <= 0) {
+      throw new Error(`Invalid --max-budget-usd value: ${args.maxBudgetUsd} (must be > 0)`);
+    }
   }
 }
 

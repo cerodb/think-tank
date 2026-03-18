@@ -60,6 +60,7 @@ const expectedPrompts = {
   ],
   brainstorm: ["diverger.md", "challenger.md", "synthesizer.md"],
   hypothesis: ["researcher.md", "verifier.md", "report.md"],
+  "cross-agent": ["arbiter.md"],
   "example-custom": ["agent-a.md", "agent-b.md", "README.md"],
 };
 
@@ -79,6 +80,7 @@ const modeExports = {
   review: "runReview",
   brainstorm: "runBrainstorm",
   hypothesis: "runHypothesis",
+  "cross-agent": "runCrossAgent",
 };
 
 for (const [mode, fnName] of Object.entries(modeExports)) {
@@ -100,6 +102,7 @@ console.log("\n[3] Core module exports");
 
 const expectedCoreExports = [
   "callClaude",
+  "callCodex",
   "loadPrompt",
   "parseArgs",
   "validateEarlyArgs",
@@ -189,6 +192,30 @@ const { parseArgs } = await import("./lib/core.mjs");
 {
   const r = parseArgs(["--help"]);
   check(r.help === true, "parseArgs: --help flag");
+}
+
+// --target
+{
+  const r = parseArgs(["--target", "both"]);
+  check(r.target === "both", "parseArgs: --target both");
+}
+
+// --arbiter
+{
+  const r = parseArgs(["--arbiter"]);
+  check(r.arbiter === true, "parseArgs: --arbiter flag");
+}
+
+// --arbiter-target
+{
+  const r = parseArgs(["--arbiter-target", "claude"]);
+  check(r.arbiterTarget === "claude", "parseArgs: --arbiter-target claude");
+}
+
+// --max-budget-usd
+{
+  const r = parseArgs(["--max-budget-usd", "0.75"]);
+  check(r.maxBudgetUsd === "0.75", "parseArgs: --max-budget-usd 0.75");
 }
 
 // multi-word positional topic tail is preserved
@@ -357,7 +384,7 @@ console.log("\n[8] plugin.json");
   if (fileExists(".claude-plugin/plugin.json", "plugin.json exists")) {
     const pj = JSON.parse(readFileSync(pjPath, "utf-8"));
     check(pj.name === "think-tank", "plugin.json name is 'think-tank'");
-    check(pj.version === "1.1.1", "plugin.json version is '1.1.1'");
+    check(pj.version === "5.0.0", "plugin.json version is '5.0.0'");
     check(
       pj.description && pj.description.length > 10,
       "plugin.json has description"
@@ -370,7 +397,7 @@ console.log("\n[8] plugin.json");
 // =========================================================================
 console.log("\n[9] Command files");
 
-const expectedCommands = ["debate", "review", "brainstorm", "hypothesis", "help"];
+const expectedCommands = ["debate", "review", "brainstorm", "hypothesis", "cross-agent", "help"];
 
 for (const cmd of expectedCommands) {
   const rel = `commands/${cmd}.md`;

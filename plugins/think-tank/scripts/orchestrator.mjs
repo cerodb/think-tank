@@ -31,6 +31,7 @@ import { runDebate } from "./modes/debate.mjs";
 import { runReview } from "./modes/review.mjs";
 import { runBrainstorm } from "./modes/brainstorm.mjs";
 import { runHypothesis } from "./modes/hypothesis.mjs";
+import { runCrossAgent } from "./modes/cross-agent.mjs";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const PLUGIN_ROOT = join(__dirname, "..");
@@ -45,6 +46,7 @@ const MODES = {
   review: { fn: runReview, desc: "Multi-reviewer code review (bug/security/performance)" },
   brainstorm: { fn: runBrainstorm, desc: "Diverge-challenge-synthesize ideation" },
   hypothesis: { fn: runHypothesis, desc: "Hypothesis-driven research with git branching" },
+  "cross-agent": { fn: runCrossAgent, desc: "Consult Claude and Codex with optional arbiter synthesis" },
 };
 
 // ---------------------------------------------------------------------------
@@ -148,6 +150,10 @@ function showUsage() {
   console.log("  --help, -h     Show mode-specific help");
   console.log("  --rounds N     Number of rounds (debate mode)");
   console.log("  --cycles N     Number of cycles (hypothesis mode)");
+  console.log("  --target T     cross-agent target: claude|codex|both");
+  console.log("  --arbiter      cross-agent synthesis pass");
+  console.log("  --arbiter-target T  cross-agent arbiter: claude|codex");
+  console.log("  --max-budget-usd N  Budget cap for Claude calls");
   console.log("  --model MODEL  Model override (e.g. sonnet)");
   console.log("  --output-dir   Output directory");
   console.log("\nExamples:");
