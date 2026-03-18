@@ -96,28 +96,33 @@ export function runCrossAgent(args) {
   let claudeResponse = "";
   let codexResponse = "";
   let arbiterResponse = "";
+  const errors = [];
 
-  try {
-    if (target === "claude" || target === "both") {
+  if (target === "claude" || target === "both") {
+    try {
       console.log("[CLAUDE] Running...");
       claudeResponse = callClaude(topic, { ...claudeOptions, env: baseEnv });
       parts.push(section("Claude Response", claudeResponse));
+    } catch (err) {
+      const msg = String(err?.message || err);
+      errors.push(`Claude failed: ${msg}`);
+      parts.push(section("Claude Error", msg));
     }
+  }
 
-    if (target === "codex" || target === "both") {
+  if (target === "codex" || target === "both") {
+    try {
       console.log("[CODEX] Running...");
       codexResponse = callCodex(topic, { ...codexOptions, env: baseEnv });
       parts.push(section("Codex Response", codexResponse));
+    } catch (err) {
+      const msg = String(err?.message || err);
+      errors.push(`Codex failed: ${msg}`);
+      parts.push(section("Codex Error", msg));
     }
-  } catch (err) {
-    parts.push(section("Execution Error", String(err?.message || err)));
-    saveFile(parts.join("\n"), outputFile);
-    console.error(`Error during cross-agent run: ${err.message}`);
-    console.error(`Partial output saved to: ${outputFile}`);
-    process.exit(1);
   }
 
-  if (arbiterEnabled) {
+  if (arbiterEnabled && (claudeResponse || codexResponse)) {
     try {
       console.log(`[ARBITER:${arbiterTarget.toUpperCase()}] Running...`);
       const arbiterPrompt = buildArbiterPrompt(claudeResponse, codexResponse);
@@ -128,21 +133,35 @@ export function runCrossAgent(args) {
       }
       parts.push(section("Arbiter Synthesis", arbiterResponse));
     } catch (err) {
-      parts.push(section("Arbiter Error", String(err?.message || err)));
+      const msg = String(err?.message || err);
+      errors.push(`Arbiter failed: ${msg}`);
+      parts.push(section("Arbiter Error", msg));
     }
+  } else if (arbiterEnabled) {
+    parts.push(section("Arbiter Skipped", "Skipped because neither primary agent returned a response."));
   }
 
   saveFile(parts.join("\n"), outputFile);
   console.log(`Output saved to: ${outputFile}`);
 
+  const successCount = [claudeResponse, codexResponse, arbiterResponse].filter(Boolean).length;
+  const status = successCount > 0 ? "ok" : "error";
+  if (errors.length > 0) {
+    console.warn(`Completed with issues: ${errors.join(" | ")}`);
+  }
+
   writeTaskOutput(
     makeTaskSummary({
       mode: "cross-agent",
-      status: "ok",
+      status,
       outputFiles: [outputFile],
       durationMs: Date.now() - startedAt,
       model,
-      note: arbiterEnabled ? `arbiter=${arbiterTarget}` : null,
+      note: [arbiterEnabled ? `arbiter=${arbiterTarget}` : null, ...errors].filter(Boolean).join(" | ") || null,
     })
   );
+
+  if (status === "error") {
+    process.exit(1);
+  }
 }
