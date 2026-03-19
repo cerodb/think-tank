@@ -1,6 +1,6 @@
-# Think Tank — Multi-Agent Collaboration Plugin for Claude Code
+# Think Tank — Structured Multi-Agent Thinking Toolkit for Claude Code and Codex
 
-Your documents have blind spots. Your code has unreviewed assumptions. Your ideas need stress-testing. Think Tank finds what you missed by orchestrating multiple Claude instances in structured roles.
+Your documents have blind spots. Your code has unreviewed assumptions. Your ideas need stress-testing. Think Tank finds what you missed by orchestrating multiple agents across Claude Code and Codex in structured roles.
 
 ## Quick Start
 
@@ -9,6 +9,12 @@ From inside Claude Code:
 ```
 /plugin marketplace add cerodb/think-tank
 /plugin install think-tank@think-tank
+```
+
+If you want to use `cross-agent`, install Codex CLI too:
+
+```bash
+npm i -g @openai/codex
 ```
 
 Try it on this README (a quick way to verify the install works):
@@ -22,7 +28,7 @@ This runs a CRITIC → DEFENDER → SYNTHESIZER pipeline on the README itself. Y
 More examples:
 
 ```
-/think-tank:debate specs/architecture.md
+/think-tank:debate docs/architecture.md
 /think-tank:review src/auth/login.ts
 /think-tank:brainstorm "How should we handle caching?"
 /think-tank:hypothesis --file hypothesis.md
@@ -36,7 +42,7 @@ A CRITIC attacks your document across 6 vectors. A DEFENDER fights back, concedi
 
 ```bash
 /think-tank:debate docs/proposal.md              # 2 rounds (default)
-/think-tank:debate specs/arch.md --rounds 3      # more rounds
+/think-tank:debate docs/arch.md --rounds 3       # more rounds
 /think-tank:debate README.md --output-dir /tmp   # custom output
 /think-tank:debate src/auth.ts --model opus      # override model
 ```
@@ -115,6 +121,49 @@ Each cycle creates isolated branches (`hypothesis/researcher-c1-*`, `hypothesis/
 
 **Cost estimate:** ~30K tokens per cycle. Requires git.
 
+### /think-tank:cross-agent — Claude/Codex Cross-Agent Consultation
+
+Send a question to Codex, Claude, or both — and optionally run an arbiter that synthesizes a final answer from both responses. This is the bridge between the two most capable coding CLIs on your machine.
+
+```bash
+/think-tank:cross-agent --topic "How should we handle auth token refresh?"
+/think-tank:cross-agent --topic "Review this migration plan" --target both
+/think-tank:cross-agent --topic "Best caching strategy" --target both --arbiter
+/think-tank:cross-agent --topic "Explain this error" --target claude
+```
+
+**Targets:**
+- `--target codex` (default) — Ask Codex only
+- `--target claude` — Ask Claude only
+- `--target both` — Ask both, get side-by-side comparison
+- `--target both --arbiter` — Both respond, then a third call synthesizes the answer
+
+**Safety defaults:**
+- Codex runs with `--sandbox read-only` (no filesystem writes)
+- Claude runs with `--no-session-persistence` (no session state leakage)
+- Claude budget capped at `--max-budget-usd 0.50` (configurable)
+- Recursion blocked: `CROSS_AGENT_HOP=1` prevents infinite loops between agents
+
+**Best for:** Getting a second opinion, comparing reasoning between models, resolving disagreements, delegating subtasks across CLIs.
+
+**Output:** 1 file in `cross-agent/` (or `--output-dir`):
+- `cross-agent-<timestamp>.md` — Per-agent responses + arbiter synthesis (if enabled)
+
+**Cost estimate:** ~5K tokens for single-target, ~15K for both + arbiter. Codex calls use ChatGPT Plus quota (not billed per token).
+
+## Repo Layout
+
+```text
+.
+├── README.md
+├── install.sh
+├── .claude-plugin/       # Claude marketplace packaging metadata
+└── plugins/think-tank/   # Actual plugin code, prompts, scripts, commands
+```
+
+- `plugins/think-tank/` is the product.
+- `.claude-plugin/` exists for marketplace/distribution metadata.
+
 ## Common Options
 
 | Flag | Modes | Description |
@@ -123,6 +172,11 @@ Each cycle creates isolated branches (`hypothesis/researcher-c1-*`, `hypothesis/
 | `--output-dir DIR` | All | Where to save output files |
 | `--rounds N` | debate | Number of debate rounds (default: 2) |
 | `--cycles N` | hypothesis | Number of research cycles (default: 1) |
+| `--topic TEXT` | cross-agent | The question to send to the agent(s) |
+| `--target TARGET` | cross-agent | `codex`, `claude`, or `both` (default: `codex`) |
+| `--arbiter` | cross-agent | Enable arbiter synthesis after both respond |
+| `--arbiter-target` | cross-agent | Which CLI runs the arbiter: `codex` or `claude` (default: `codex`) |
+| `--max-budget-usd N` | cross-agent | Claude cost cap per call (default: `0.50`) |
 
 ## Customization
 
@@ -134,6 +188,7 @@ plugins/think-tank/prompts/
   review/         # bug-hunter.md, security-auditor.md, ...
   brainstorm/     # diverger.md, challenger.md, synthesizer.md
   hypothesis/     # researcher.md, verifier.md, report.md
+  cross-agent/    # arbiter.md
 ```
 
 **The prompts are the product.** The scripts are just plumbing. Edit any prompt to change agent behavior.
@@ -154,13 +209,10 @@ Prompt files are loaded alphabetically (excluding README.md). Each agent receive
 
 See `plugins/think-tank/prompts/example-custom/` for a working example with Devil's Advocate and Pragmatist agents.
 
-## Security Note
-
-All prompts include injection guards via `--system-prompt` to prevent prompt injection from analyzed documents. The system prompt content is not injectable from stdin. However, since this plugin runs Claude instances with your credentials, only analyze documents you trust — the same way you'd only open files you trust in your editor.
-
 ## Requirements
 
 - **Claude Code** with Max plan or API key (spawns `claude -p` subprocesses)
+- **Codex CLI** (optional, required for cross-agent mode — install: `npm i -g @openai/codex`, requires ChatGPT Plus)
 - **Node.js 18+**
 - **git** (required for hypothesis mode branch isolation)
 
